@@ -2,10 +2,8 @@ import EventEmitter from 'node:events';
 
 const enum LexerStates {
   Begin = 'Begin',
-  ObjectOpen = 'ObjectOpen',
-  ObjectClose = 'ObjectClose',
-  ArrayOpen = 'ArrayOpen',
-  ArrayClose = 'ArrayClose',
+  Object = 'Object',
+  Array = 'Array',
   Key = 'Key',
   Value = 'Value',
   String = 'String',
@@ -33,6 +31,7 @@ class JSONParser extends EventEmitter {
   private stateStack: LexerStates[] = [LexerStates.Begin];
   private currentToken = '';
   private keyPath: string[] = [];
+  private arrayIndexStack: any[] = [];
   private autoFix = false;
 
   constructor(options: { autoFix: boolean, parentPath: string | null } = { autoFix: false, parentPath: null }) {
@@ -45,9 +44,16 @@ class JSONParser extends EventEmitter {
     return this.stateStack[this.stateStack.length - 1];
   }
 
+  get arrayIndex() {
+    return this.arrayIndexStack[this.arrayIndexStack.length - 1];
+  }
+
   private pushState(state: LexerStates) {
     console.log('pushState', state);
     this.stateStack.push(state);
+    if(state === LexerStates.Array) {
+      this.arrayIndexStack.push({index: 0});
+    }
   }
 
   private popState() {
@@ -56,6 +62,9 @@ class JSONParser extends EventEmitter {
     console.log('popState', state, this.currentState);
     if(state === LexerStates.Value) {
       this.keyPath.pop();
+    }
+    if(state === LexerStates.Array) {
+      this.arrayIndexStack.pop();
     }
     return state;
   }
@@ -94,7 +103,6 @@ class JSONParser extends EventEmitter {
         this.popState();
       }
     } else if(currentState === LexerStates.Null) {
-      const str = this.currentToken;
       this.popState();
       if(this.currentState === LexerStates.Value) {
         this.emit('data', {
@@ -103,7 +111,14 @@ class JSONParser extends EventEmitter {
         });
         this.popState();
       }
-    } else {
+    } else if(currentState === LexerStates.Array) {
+      this.popState();
+      if(this.currentState === LexerStates.Value) {
+        this.popState();
+      }
+    }
+    
+    else {
       this.traceError(this.content.join(''));
     }
   }
@@ -117,16 +132,16 @@ class JSONParser extends EventEmitter {
   private traceBegin(input: string) {
     // TODO： 目前只简单处理了对象和数组的情况，对于其他类型的合法JSON处理需要补充
     if(input === '{') {
-      this.pushState(LexerStates.ObjectOpen);
+      this.pushState(LexerStates.Object);
     } else if(input === '[') {
-      this.pushState(LexerStates.ArrayOpen);
+      this.pushState(LexerStates.Array);
     } else {
       this.traceError(input);
       return; // recover
     }
   }
 
-  private traceObjectOpen(input: string) {
+  private traceObject(input: string) {
     if(isWhiteSpace(input)) {
       return;
     }
@@ -142,6 +157,48 @@ class JSONParser extends EventEmitter {
       } else if(this.currentState === LexerStates.Value) {
         this.popState();
       }
+    }
+  }
+
+  private traceArray(input: string) {
+    if(isWhiteSpace(input)) {
+      return;
+    }
+    if(input === '"') {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.String);
+    }
+    else if(input === '.' || input === '-' || isNumeric(input)) {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.currentToken += input;
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.Number);
+    }
+    else if(input === 't' || input === 'f') {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.currentToken += input;
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.Boolean);
+    }
+    else if(input === 'n') {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.currentToken += input;
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.Null);
+    }
+    else if(input === '{') {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.Object);
+    }
+    else if(input === '[') {
+      this.keyPath.push((this.arrayIndex.index++).toString());
+      this.pushState(LexerStates.Value);
+      this.pushState(LexerStates.Array);
+    }
+    else if(input === ']') {
+      this.reduceState();
     }
   }
 
@@ -180,7 +237,7 @@ class JSONParser extends EventEmitter {
     if(input === '"') {
       this.pushState(LexerStates.String);
     } else if(input === '{') {
-      this.pushState(LexerStates.ObjectOpen);
+      this.pushState(LexerStates.Object);
     } else if(input === '.' || input === '-' || isNumeric(input)) {
       this.currentToken += input;
       this.pushState(LexerStates.Number);
@@ -190,6 +247,8 @@ class JSONParser extends EventEmitter {
     } else if(input === 'n') {
       this.currentToken += input;
       this.pushState(LexerStates.Null);
+    } else if(input === '[') {
+      this.pushState(LexerStates.Array);
     }
   }
 
@@ -203,7 +262,7 @@ class JSONParser extends EventEmitter {
     }
     if(input === ',') {
       this.reduceState();
-    } else if(input === '}') {
+    } else if(input === '}' || input === ']') {
       this.reduceState();
       this.trace(input);
     }
@@ -257,8 +316,8 @@ class JSONParser extends EventEmitter {
     if(currentState === LexerStates.Begin) {
       this.traceBegin(input);
     }
-    else if(currentState === LexerStates.ObjectOpen) {
-      this.traceObjectOpen(input);
+    else if(currentState === LexerStates.Object) {
+      this.traceObject(input);
     }
     else if(currentState === LexerStates.String) {
       this.traceString(input);
@@ -277,6 +336,9 @@ class JSONParser extends EventEmitter {
     }
     else if(currentState === LexerStates.Null) {
       this.traceNull(input);
+    }
+    else if(currentState === LexerStates.Array) {
+      this.traceArray(input);
     }
     else {
       this.traceError(input);
