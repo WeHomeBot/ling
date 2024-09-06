@@ -22,12 +22,7 @@ function isNumeric(str: unknown) {
 function isTrue(str: string) {
   return str === 'true';
 }
-function isFalse(str: string) {
-  return str === 'false';
-}
-function isNull(str: string) {
-  return str === 'null';
-}
+
 //判断空白符
 function isWhiteSpace(str: string) {
   return /^\s+$/.test(str);
