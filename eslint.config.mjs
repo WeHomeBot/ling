@@ -8,4 +8,13 @@ export default [
   {languageOptions: { globals: globals.browser }},
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    env: {
+      node: true,
+    },
+    rules: {
+      'no-constant-condition': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+    },
+  }
 ];
