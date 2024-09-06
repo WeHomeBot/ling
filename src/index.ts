@@ -1,8 +1,11 @@
 import { JSONParser } from './parser/index';
 
 // for test
-const parser = new JSONParser();
-const data = {"b": {"a": "你好，我是豆包。"}};
+const parser = new JSONParser({
+  autoFix: true,
+  parentPath: 'x/y',
+});
+const data = {"b": {"a": "你好，我是豆包。"}, "c": 1024, "d": true, "e": null};
 parser.on('data', (data) => {
   console.log(data);
 });

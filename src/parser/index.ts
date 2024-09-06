@@ -34,15 +34,16 @@ function isWhiteSpace(str: string) {
 }
 
 class JSONParser extends EventEmitter {
-  private parentPath: string | null;
   private content: string[] = [];
   private stateStack: LexerStates[] = [LexerStates.Begin];
   private currentToken = '';
   private keyPath: string[] = [];
+  private autoFix = false;
 
-  constructor(parentPath: string | null = null) {
+  constructor(options: { autoFix: boolean, parentPath: string | null } = { autoFix: false, parentPath: null }) {
     super();
-    this.parentPath = parentPath;
+    this.autoFix = options.autoFix;
+    if(options.parentPath) this.keyPath.push(options.parentPath);
   }
 
   get currentState() {
@@ -58,6 +59,9 @@ class JSONParser extends EventEmitter {
     this.currentToken = '';
     const state = this.stateStack.pop();
     console.log('popState', state, this.currentState);
+    if(state === LexerStates.Value) {
+      this.keyPath.pop();
+    }
     return state;
   }
 
@@ -68,18 +72,51 @@ class JSONParser extends EventEmitter {
       const str = this.currentToken;
       this.popState();
       if(this.currentState === LexerStates.Key) {
-        // this.emit('key', str);
         this.keyPath.push(str);
       } else if(this.currentState === LexerStates.Value) {
         // ...
         this.popState();
       }
+    } else if(currentState === LexerStates.Number) {
+      const num = Number(this.currentToken);
+      this.popState();
+      if(this.currentState === LexerStates.Value) {
+        // ...
+        this.emit('data', {
+          uri: this.keyPath.join('/'),
+          delta: num,
+        });
+        this.popState();
+      }
+    } else if(currentState === LexerStates.Boolean) {
+      const str = this.currentToken;
+      this.popState();
+      if(this.currentState === LexerStates.Value) {
+        this.emit('data', {
+          uri: this.keyPath.join('/'),
+          delta: isTrue(str),
+        });
+        this.popState();
+      }
+    } else if(currentState === LexerStates.Null) {
+      const str = this.currentToken;
+      this.popState();
+      if(this.currentState === LexerStates.Value) {
+        this.emit('data', {
+          uri: this.keyPath.join('/'),
+          delta: null,
+        });
+        this.popState();
+      }
+    } else {
+      this.traceError(this.content.join(''));
     }
   }
 
   private traceError(input: string) {
     console.error('Invalid TOKEN', input);
     this.content.pop();
+    throw new Error('Invalid TOKEN');
   }
 
   private traceBegin(input: string) {
@@ -122,10 +159,12 @@ class JSONParser extends EventEmitter {
       this.reduceState();
     } else {
       this.currentToken += input;
-      this.emit('data', {
-        uri: this.keyPath.join('/'),
-        delta: input,
-      });
+      if(this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
+        this.emit('data', {
+          uri: this.keyPath.join('/'),
+          delta: input,
+        });
+      }
     }
   }
 
@@ -147,13 +186,66 @@ class JSONParser extends EventEmitter {
       this.pushState(LexerStates.String);
     } else if(input === '{') {
       this.pushState(LexerStates.ObjectOpen);
+    } else if(input === '.' || input === '-' || isNumeric(input)) {
+      this.currentToken += input;
+      this.pushState(LexerStates.Number);
+    } else if(input === 't' || input === 'f') {
+      this.currentToken += input;
+      this.pushState(LexerStates.Boolean);
+    } else if(input === 'n') {
+      this.currentToken += input;
+      this.pushState(LexerStates.Null);
     }
   }
 
-  public finish() { // 结束解析
-    this.stateStack.push(LexerStates.Finish);
-    this.reduceState();
+  private traceNumber(input: string) {
+    if(isWhiteSpace(input)) {
+      return;
+    }
+    if(isNumeric(this.currentToken + input)) {
+      this.currentToken += input;
+      return;
+    }
+    if(input === ',') {
+      this.reduceState();
+    } else if(input === '}') {
+      this.reduceState();
+      this.trace(input);
+    }
   }
+
+  private traceBoolean(input: string) {
+    if(isWhiteSpace(input)) {
+      return;
+    }
+    this.currentToken += input;
+    if(this.currentToken === 'true' || this.currentToken === 'false') {
+      this.reduceState();
+    } else if('true'.startsWith(this.currentToken) || 'false'.startsWith(this.currentToken)) {
+      return;
+    } else {
+      this.traceError(input);
+    }
+  }
+  
+  private traceNull(input: string) {
+    if(isWhiteSpace(input)) {
+      return;
+    }
+    this.currentToken += input;
+    if(this.currentToken === 'null') {
+      this.reduceState();
+    } else if('null'.startsWith(this.currentToken)) {
+      return;
+    } else {
+      this.traceError(input);
+    }
+  }
+
+  // public finish() { // 结束解析
+  //   this.stateStack.push(LexerStates.Finish);
+  //   this.reduceState();
+  // }
 
   public trace(input: string) {
     console.log('trace', input);
@@ -181,6 +273,18 @@ class JSONParser extends EventEmitter {
     }
     else if(currentState === LexerStates.Value) {
       this.traceValue(input);
+    }
+    else if(currentState === LexerStates.Number) {
+      this.traceNumber(input);
+    }
+    else if(currentState === LexerStates.Boolean) {
+      this.traceBoolean(input);
+    }
+    else if(currentState === LexerStates.Null) {
+      this.traceNull(input);
+    }
+    else {
+      this.traceError(input);
     }
   }
 }
