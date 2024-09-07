@@ -5,7 +5,7 @@
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
     "prepublish": "npm run build"
   },
@@ -14,9 +14,13 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/jest": "^29.5.12",
     "@types/node": "^22.5.4",
     "eslint": "^9.9.1",
+    "eslint-plugin-jest": "^28.8.3",
     "globals": "^15.9.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.4.0"
   }

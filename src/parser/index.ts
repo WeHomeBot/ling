@@ -33,10 +33,12 @@ class JSONParser extends EventEmitter {
   private keyPath: string[] = [];
   private arrayIndexStack: any[] = [];
   private autoFix = false;
+  private debug = false;
 
-  constructor(options: { autoFix: boolean, parentPath: string | null } = { autoFix: false, parentPath: null }) {
+  constructor(options: { autoFix?: boolean, parentPath?: string | null, debug?: boolean } = { autoFix: false, parentPath: null, debug: false }) {
     super();
-    this.autoFix = options.autoFix;
+    this.autoFix = !!options.autoFix;
+    this.debug = !!options.debug;
     if(options.parentPath) this.keyPath.push(options.parentPath);
   }
 
@@ -48,8 +50,14 @@ class JSONParser extends EventEmitter {
     return this.arrayIndexStack[this.arrayIndexStack.length - 1];
   }
 
+  private log(...args: any[]) {
+    if(this.debug) {
+      console.log(...args);
+    }
+  }
+
   private pushState(state: LexerStates) {
-    console.log('pushState', state);
+    this.log('pushState', state);
     this.stateStack.push(state);
     if(state === LexerStates.Array) {
       this.arrayIndexStack.push({index: 0});
@@ -59,7 +67,7 @@ class JSONParser extends EventEmitter {
   private popState() {
     this.currentToken = '';
     const state = this.stateStack.pop();
-    console.log('popState', state, this.currentState);
+    this.log('popState', state, this.currentState);
     if(state === LexerStates.Value) {
       this.keyPath.pop();
     }
@@ -124,7 +132,7 @@ class JSONParser extends EventEmitter {
   }
 
   private traceError(input: string) {
-    console.error('Invalid TOKEN', input);
+    this.log('Invalid TOKEN', input);
     this.content.pop();
     throw new Error('Invalid TOKEN');
   }
@@ -153,7 +161,7 @@ class JSONParser extends EventEmitter {
       if(this.currentState === LexerStates.Begin) {
         this.popState();
         this.pushState(LexerStates.Finish);
-        this.emit('finish', this.content.join(''));
+        this.emit('finish', JSON.parse(this.content.join('')));
       } else if(this.currentState === LexerStates.Value) {
         this.popState();
       }
@@ -264,6 +272,7 @@ class JSONParser extends EventEmitter {
       this.reduceState();
     } else if(input === '}' || input === ']') {
       this.reduceState();
+      this.content.pop();
       this.trace(input);
     }
   }
@@ -302,7 +311,7 @@ class JSONParser extends EventEmitter {
   // }
 
   public trace(input: string) {
-    console.log('trace', input);
+    this.log('trace', input);
     const currentState = this.currentState;
 
     if(input.length > 1) {

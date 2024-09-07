@@ -9,8 +9,10 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    plugins: ["jest"],
     env: {
       node: true,
+      'jest/globals': true,
     },
     rules: {
       'no-constant-condition': 'off',
