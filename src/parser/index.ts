@@ -11,6 +11,7 @@ const enum LexerStates {
   Boolean = 'Boolean',
   Null = 'Null',
   Finish = 'Finish',
+  Breaker = 'Breaker',
 }
 
 function isNumeric(str: unknown) {
@@ -52,7 +53,7 @@ class JSONParser extends EventEmitter {
 
   private log(...args: any[]) {
     if(this.debug) {
-      console.log(...args);
+      console.log(...args, this.content.join(''));
     }
   }
 
@@ -95,7 +96,7 @@ class JSONParser extends EventEmitter {
       if(this.currentState === LexerStates.Value) {
         // ...
         this.emit('data', {
-          uri: this.keyPath.join('/'),
+          uri: this.keyPath.join('/'), // JSONURI https://github.com/aligay/jsonuri
           delta: num,
         });
         this.popState();
@@ -119,20 +120,24 @@ class JSONParser extends EventEmitter {
         });
         this.popState();
       }
-    } else if(currentState === LexerStates.Array) {
+    } else if(currentState === LexerStates.Array || currentState === LexerStates.Object) {
       this.popState();
-      if(this.currentState === LexerStates.Value) {
+      if(this.currentState === LexerStates.Begin) {
         this.popState();
+        this.pushState(LexerStates.Finish);
+        this.emit('finish', JSON.parse(this.content.join('')));
+      } else if(this.currentState === LexerStates.Value) {
+        this.popState();
+        this.pushState(LexerStates.Breaker);
       }
     }
-    
     else {
       this.traceError(this.content.join(''));
     }
   }
 
   private traceError(input: string) {
-    this.log('Invalid TOKEN', input);
+    console.error('Invalid TOKEN', input);
     this.content.pop();
     throw new Error('Invalid TOKEN');
   }
@@ -157,14 +162,7 @@ class JSONParser extends EventEmitter {
       this.pushState(LexerStates.Key);
       this.pushState(LexerStates.String);
     } else if(input === '}') {
-      this.popState();
-      if(this.currentState === LexerStates.Begin) {
-        this.popState();
-        this.pushState(LexerStates.Finish);
-        this.emit('finish', JSON.parse(this.content.join('')));
-      } else if(this.currentState === LexerStates.Value) {
-        this.popState();
-      }
+      this.reduceState();
     }
   }
 
@@ -217,6 +215,9 @@ class JSONParser extends EventEmitter {
     }
     if(input === '"' && (this.currentToken[this.currentToken.length - 1] !== '\\' || this.currentToken[this.currentToken.length - 2] === '\\')) {
       this.reduceState();
+      if(this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
+        this.pushState(LexerStates.Breaker);
+      }
     } else {
       this.currentToken += input;
       if(this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
@@ -282,9 +283,13 @@ class JSONParser extends EventEmitter {
       return;
     }
     this.currentToken += input;
-    if(this.currentToken === 'true' || this.currentToken === 'false') {
+    if(input === ',') {
       this.reduceState();
-    } else if('true'.startsWith(this.currentToken) || 'false'.startsWith(this.currentToken)) {
+    } else if(input === '}' || input === ']') {
+      this.reduceState();
+      this.content.pop();
+      this.trace(input);
+    }  else if('true'.startsWith(this.currentToken) || 'false'.startsWith(this.currentToken)) {
       return;
     } else {
       this.traceError(input);
@@ -296,12 +301,30 @@ class JSONParser extends EventEmitter {
       return;
     }
     this.currentToken += input;
-    if(this.currentToken === 'null') {
+    if(input === ',') {
       this.reduceState();
+    } else if(input === '}' || input === ']') {
+      this.reduceState();
+      this.content.pop();
+      this.trace(input);
     } else if('null'.startsWith(this.currentToken)) {
       return;
     } else {
       this.traceError(input);
+    }
+  }
+
+  private traceBreaker(input: string) {
+    if(isWhiteSpace(input)) {
+      return;
+    }
+    if(input === ',') {
+      this.popState();
+    }
+    else if(input === '}' || input === ']') {
+      this.popState();
+      this.content.pop();
+      this.trace(input);
     }
   }
 
@@ -311,8 +334,8 @@ class JSONParser extends EventEmitter {
   // }
 
   public trace(input: string) {
-    this.log('trace', input);
     const currentState = this.currentState;
+    this.log('trace', input, currentState);
 
     if(input.length > 1) {
       [...input].forEach((char) => {
@@ -349,7 +372,10 @@ class JSONParser extends EventEmitter {
     else if(currentState === LexerStates.Array) {
       this.traceArray(input);
     }
-    else {
+    else if(currentState === LexerStates.Breaker) {
+      this.traceBreaker(input);
+    }
+    else if(!isWhiteSpace(input)) {
       this.traceError(input);
     }
   }
