@@ -114,74 +114,51 @@ describe('JSONParser', () => {
     parser.trace(JSON.stringify(_data));
   })
 
+  test('sample JSON string with space', done => {
+    parser.on('finish', (data) => {
+      expect(data).toEqual({ 'name': 'bearbobo', 'age': 10, boy: true, hobbies: ['football', 'swiming'], school: null });
+      done();
+    })
+
+    parser.trace('{ "name" : "bearbobo", "age" : 10, "boy" : true, "hobbies" : [ "football", "swiming" ], "school" : null } ');
+  });
+
   test('complex JSON string', done => {
-    const _arr: any = [];
-    const _data = { "b": { "a\"": "你好，我是豆包。" }, "c": 1024, "d": true, "e": [1, 2, [32], { 'g': 'h' }], "f": null };
+    const _arr: any[] = [];
+    const _data = { "b": { "a\"": "你好，我是波波熊。" }, "c": 1024, "d": true, "e": [1, 2, " 灵", true, false, null, [32], { 'g': 'h' }], "f": null };
 
     parser.on('data', (data) => {
       _arr.push(data)
     });
     parser.on('finish', (data) => {
-      console.log('finish', data);
       expect(data).toEqual(_data);
       expect(_arr).toEqual([
-        // "a\"" 经过 JSON.stringify 后会将反斜杠转义为 \\，即 "{"b":{"a\\"":"你好，我是豆包。"}"
-        // 因此这里的 uri 为 'x/y/b/a\\"'，这表示的是 JSON 字符串中的 uri，而不是 JS 对象中的 key
         { uri: 'x/y/b/a\\"', delta: '你' },
         { uri: 'x/y/b/a\\"', delta: '好' },
         { uri: 'x/y/b/a\\"', delta: '，' },
         { uri: 'x/y/b/a\\"', delta: '我' },
         { uri: 'x/y/b/a\\"', delta: '是' },
-        { uri: 'x/y/b/a\\"', delta: '豆' },
-        { uri: 'x/y/b/a\\"', delta: '包' },
+        { uri: 'x/y/b/a\\"', delta: '波' },
+        { uri: 'x/y/b/a\\"', delta: '波' },
+        { uri: 'x/y/b/a\\"', delta: '熊' },
         { uri: 'x/y/b/a\\"', delta: '。' },
         { uri: 'x/y/c', delta: 1024 },
         { uri: 'x/y/d', delta: true },
         { uri: 'x/y/e/0', delta: 1 },
         { uri: 'x/y/e/1', delta: 2 },
-        { uri: 'x/y/e/2/0', delta: 32 },
-        { uri: 'x/y/e/3/g', delta: 'h' },
+        { uri: 'x/y/e/2', delta: ' ' },
+        { uri: 'x/y/e/2', delta: '灵' },
+        { uri: 'x/y/e/3', delta: true },
+        { uri: 'x/y/e/4', delta: false },
+        { uri: 'x/y/e/5', delta: null },
+        { uri: 'x/y/e/6/0', delta: 32 },
+        { uri: 'x/y/e/7/g', delta: 'h' },
         { uri: 'x/y/f', delta: null }
       ]);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  });
-
-  test('complex JSON string one by one', done => {
-    const _arr: any[] = [];
-    const _data = { "b": { "a": "你好，我是豆包。" }, "c": 1024, "d": true, "e": [1, 2, [32], { 'g': 'h' }], "f": null };
-
-    parser.on('data', (data) => {
-      _arr.push(data)
-    });
-    parser.on('finish', (data) => {
-      expect(data).toEqual(_data);
-      expect(_arr).toEqual([
-        { uri: 'x/y/b/a', delta: '你' },
-        { uri: 'x/y/b/a', delta: '好' },
-        { uri: 'x/y/b/a', delta: '，' },
-        { uri: 'x/y/b/a', delta: '我' },
-        { uri: 'x/y/b/a', delta: '是' },
-        { uri: 'x/y/b/a', delta: '豆' },
-        { uri: 'x/y/b/a', delta: '包' },
-        { uri: 'x/y/b/a', delta: '。' },
-        { uri: 'x/y/c', delta: 1024 },
-        { uri: 'x/y/d', delta: true },
-        { uri: 'x/y/e/0', delta: 1 },
-        { uri: 'x/y/e/1', delta: 2 },
-        { uri: 'x/y/e/2/0', delta: 32 },
-        { uri: 'x/y/e/3/g', delta: 'h' },
-        { uri: 'x/y/f', delta: null }
-      ]);
-      done();
-    });
-
-    const tokens = JSON.stringify(_data).split('');
-    for (let i = 0; i < tokens.length; i++) {
-      parser.trace(tokens[i]);
-    }
   });
 
   test('invalid JSON string', done => {
@@ -266,10 +243,11 @@ describe('JSONParser', () => {
     }
   });
 
-  // 在没有 autoFix 能力时，这个测试用例会抛出异常
-  test('JSON string without quotation marks', done => {
+
+  // 数字不能作为 JSON 的 key
+  test('JSON string with number key', done => {
     try {
-      parser.trace('{name:bearbobo}');
+      parser.trace('{1: "bearbobo"}');
     } catch (error: any) {
       expect(error.message).toBe('Invalid TOKEN');
       done();
@@ -277,9 +255,9 @@ describe('JSONParser', () => {
   });
 
   // JSON格式中，key需要使用双引号包裹
-  test('JSON string with mismatched parentheses', done => {
+  test('JSON string without quotation marks', done => {
     try {
-      parser.trace('{"name":"bearbobo"');
+      parser.trace('{name:bearbobo}');
     } catch (error: any) {
       expect(error.message).toBe('Invalid TOKEN');
       done();
@@ -295,6 +273,35 @@ describe('JSONParser', () => {
       done();
     }
   });
+
+  // 非法的布尔值
+  test('JSON string with illegal boolean value', done => {
+    try {
+      parser.trace('{"name":truae}');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  });
+
+  // 值为 undefined 的 JSON 字符串
+  test('JSON string with undefined value', done => {
+    try {
+      parser.trace('{"name":undefined}');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  });
+
+  test('JSON string with mismatched parentheses', done => {
+    try {
+      parser.trace('{"name":"bearbobo"');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  }, 1000);
 
   // JSON格式中，反斜杠本身需要转义，需要使用两个反斜杠来表示，因此一个反斜杠是非法的
   test('JSON string containing illegal characters', done => {

@@ -155,7 +155,7 @@ class JSONParser extends EventEmitter {
   }
 
   private traceObject(input: string) {
-    if (isWhiteSpace(input)) {
+    if (isWhiteSpace(input) || input === ',') {
       return;
     }
     if (input === '"') {
@@ -213,8 +213,8 @@ class JSONParser extends EventEmitter {
   private traceString(input: string) {
     if (input === '\n') {
       this.traceError(input);
-      return;
     }
+
     if (input === '"' && (this.currentToken[this.currentToken.length - 1] !== '\\' || this.currentToken[this.currentToken.length - 2] === '\\')) {
       this.reduceState();
       if (this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
@@ -300,9 +300,9 @@ class JSONParser extends EventEmitter {
     this.currentToken += input;
     if ('true'.startsWith(this.currentToken) || 'false'.startsWith(this.currentToken)) {
       return;
-    } else {
-      this.traceError(input);
     }
+
+    this.traceError(input);
   }
 
   private traceNull(input: string) {
