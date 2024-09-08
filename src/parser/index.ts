@@ -137,7 +137,7 @@ class JSONParser extends EventEmitter {
   }
 
   private traceError(input: string) {
-    console.error('Invalid TOKEN', input);
+    // console.error('Invalid TOKEN', input);
     this.content.pop();
     throw new Error('Invalid TOKEN');
   }
@@ -163,6 +163,8 @@ class JSONParser extends EventEmitter {
       this.pushState(LexerStates.String);
     } else if (input === '}') {
       this.reduceState();
+    } else {
+      this.traceError(input);
     }
   }
 

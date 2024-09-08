@@ -122,16 +122,19 @@ describe('JSONParser', () => {
       _arr.push(data)
     });
     parser.on('finish', (data) => {
+      console.log('finish', data);
       expect(data).toEqual(_data);
       expect(_arr).toEqual([
-        { uri: 'x/y/b/a\\\"', delta: '你' },
-        { uri: 'x/y/b/a\\\"', delta: '好' },
-        { uri: 'x/y/b/a\\\"', delta: '，' },
-        { uri: 'x/y/b/a\\\"', delta: '我' },
-        { uri: 'x/y/b/a\\\"', delta: '是' },
-        { uri: 'x/y/b/a\\\"', delta: '豆' },
-        { uri: 'x/y/b/a\\\"', delta: '包' },
-        { uri: 'x/y/b/a\\\"', delta: '。' },
+        // "a\"" 经过 JSON.stringify 后会将反斜杠转义为 \\，即 "{"b":{"a\\"":"你好，我是豆包。"}"
+        // 因此这里的 uri 为 'x/y/b/a\\"'，这表示的是 JSON 字符串中的 uri，而不是 JS 对象中的 key
+        { uri: 'x/y/b/a\\"', delta: '你' },
+        { uri: 'x/y/b/a\\"', delta: '好' },
+        { uri: 'x/y/b/a\\"', delta: '，' },
+        { uri: 'x/y/b/a\\"', delta: '我' },
+        { uri: 'x/y/b/a\\"', delta: '是' },
+        { uri: 'x/y/b/a\\"', delta: '豆' },
+        { uri: 'x/y/b/a\\"', delta: '包' },
+        { uri: 'x/y/b/a\\"', delta: '。' },
         { uri: 'x/y/c', delta: 1024 },
         { uri: 'x/y/d', delta: true },
         { uri: 'x/y/e/0', delta: 1 },
@@ -273,34 +276,33 @@ describe('JSONParser', () => {
     }
   });
 
-  // 在没有 autoFix 能力时，这个测试用例会抛出异常
   // JSON格式中，key需要使用双引号包裹
-  // test('JSON string with mismatched parentheses', done => {
-  //   try {
-  //     parser.trace('{name:bearbobo');
-  //   } catch (error: any) {
-  //     expect(error.message).toBe('Invalid TOKEN');
-  //     done();
-  //   }
-  // });
+  test('JSON string with mismatched parentheses', done => {
+    try {
+      parser.trace('{"name":"bearbobo"');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  });
 
   // JSON格式中，key需要使用双引号包裹，因此单引号是非法的
-  // test('JSON string containing illegal characters 2', done => {
-  //   try {
-  //     parser.trace(`{'name':"John"}`);
-  //   } catch (error: any) {
-  //     expect(error.message).toBe('Invalid TOKEN');
-  //     done();
-  //   }
-  // });
+  test('JSON string containing illegal characters 2', done => {
+    try {
+      parser.trace(`{'name':"John"}`);
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  });
 
   // JSON格式中，反斜杠本身需要转义，需要使用两个反斜杠来表示，因此一个反斜杠是非法的
-  // test('JSON string containing illegal characters', done => {
-  //   try {
-  //     parser.trace('{"name":"Joh\n"}');
-  //   } catch (error: any) {
-  //     expect(error.message).toBe('Invalid TOKEN');
-  //     done();
-  //   }
-  // });
+  test('JSON string containing illegal characters', done => {
+    try {
+      parser.trace('{"name":"Bearbobo\n"}');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid TOKEN');
+      done();
+    }
+  });
 })
