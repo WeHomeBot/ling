@@ -5,7 +5,8 @@
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --config jest.config.js",
+    "coverage": "jest --config jest.config.js --coverage",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
     "prepublish": "npm run build"
   },
