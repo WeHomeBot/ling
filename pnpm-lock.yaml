@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@azure/openai':
+    specifier: 2.0.0-beta.1
+    version: 2.0.0-beta.1
   openai:
     specifier: ^4.58.1
     version: 4.58.1
@@ -53,6 +56,13 @@ packages:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
     dev: true
+
+  /@azure/openai@2.0.0-beta.1:
+    resolution: {integrity: sha512-SMcGMbhv8gYiTvmv2aKlkDAW0sI5pjGW5KyC94DTAYgpZS7eK+B1WpCfuJLzVaLxbYZXYWTsmd+dCsS4rXJ9+w==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      tslib: 2.7.0
+    dev: false
 
   /@babel/code-frame@7.24.7:
     resolution: {integrity: sha512-BcYH1CVJBO9tvyIZ2jVeXgSIMvGZ2FDRvDdOIVQyuklNKSsx+eppDEBq/g47Ayw+RqNFE+URvOShmf+f/qwAlA==}
@@ -3113,6 +3123,10 @@ packages:
       typescript: 5.5.4
       yargs-parser: 21.1.1
     dev: true
+
+  /tslib@2.7.0:
+    resolution: {integrity: sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==}
+    dev: false
 
   /type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}

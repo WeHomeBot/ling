@@ -12,7 +12,7 @@ describe('OpenAI', () => {
     const tube = new Tube();
     const messages = [
       { role: 'system', content: `你用JSON格式回答我，以{开头\n[Example]{answer: "我的回答"}` },
-      { role: 'user', content: '你是谁？' },
+      { role: 'user', content: '我能躺在云上吗？' },
     ];
     const config: ChatConfig = {
       model_name,
@@ -40,5 +40,5 @@ describe('OpenAI', () => {
       console.log(value);
       return reader.read().then(processText);
     });
-  }, 180000);
+  }, 60000);
 });
