@@ -42,6 +42,14 @@ export class Bot extends EventEmitter {
     this.history.push(...messages);
   }
 
+  userMessage(message: string): ChatCompletionUserMessageParam {
+    return { role: "user", content: message };
+  }
+
+  botMessage(message: string): ChatCompletionAssistantMessageParam {
+    return { role: "assistant", content: message };
+  }
+
   async chat(message: string) {
     this.chatState = ChatState.CHATTING;
     const messages = [...this.prompts, ...this.history, { role: "user", content: message }];

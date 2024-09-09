@@ -129,5 +129,5 @@ export async function getChatCompletions(
     })(),
   ];
   await Promise.race(promises);
-  return isJSONFormat ? JSON.parse(content) : content;
+  return content;
 }
