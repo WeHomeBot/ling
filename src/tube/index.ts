@@ -1,4 +1,4 @@
-class Tube {
+export class Tube {
   private _stream: ReadableStream;
   private controller: ReadableStreamDefaultController | null = null;
   private _canceled: boolean = false;
@@ -35,5 +35,3 @@ class Tube {
     return this._stream;
   }
 }
-
-export { Tube}

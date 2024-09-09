@@ -24,6 +24,7 @@ export async function getChatCompletions(
   options?: ChatOptions,
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
+  options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
   const isJSONFormat = options.response_format?.type === 'json_object';
   let parser: JSONParser | undefined;
 
@@ -130,4 +131,5 @@ export async function getChatCompletions(
     })(),
   ];
   await Promise.all(promises);
+  return content;
 }

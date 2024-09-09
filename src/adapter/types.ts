@@ -30,4 +30,5 @@ export interface ChatOptions {
   top_p?: number;
   onComplete?: (content: string) => void;
   response_format?: any;
+  max_tokens?: number;
 }

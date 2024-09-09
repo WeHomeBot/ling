@@ -27,7 +27,7 @@ function isWhiteSpace(str: string) {
   return /^\s+$/.test(str);
 }
 
-class JSONParser extends EventEmitter {
+export class JSONParser extends EventEmitter {
   private content: string[] = [];
   private stateStack: LexerStates[] = [LexerStates.Begin];
   private currentToken = '';
@@ -389,5 +389,3 @@ class JSONParser extends EventEmitter {
     }
   }
 }
-
-export { JSONParser };
