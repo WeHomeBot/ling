@@ -28,7 +28,6 @@ export interface ChatOptions {
   frequency_penalty?: number;
   stop?: string[];
   top_p?: number;
-  onComplete?: (content: string) => void;
   response_format?: any;
   max_tokens?: number;
 }

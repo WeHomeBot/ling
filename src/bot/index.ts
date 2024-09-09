@@ -1,3 +1,5 @@
+import EventEmitter from 'node:events';
+
 import { Tube } from "../tube";
 import nunjucks from 'nunjucks';
 import { getChatCompletions } from "../adapter/openai";
@@ -7,12 +9,21 @@ import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessagePa
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
-export class Bot {
+enum ChatState {
+  INIT = 'init',
+  CHATTING = 'chatting',
+  FINISHED = 'finished',
+}
+
+export class Bot extends EventEmitter {
   private prompts: ChatCompletionSystemMessageParam[] = [];
   private history: ChatCompletionMessageParam[] = [];
   private customParams: Record<string, string> = {};
+  private chatState = ChatState.INIT;
 
-  constructor(private tube: Tube, private config: ChatConfig, private options: ChatOptions = {}) {}
+  constructor(private tube: Tube, private config: ChatConfig, private options: ChatOptions = {}) {
+    super();
+  }
 
   setJSONRoot(root: string) {
     this.options.response_format = { type: 'json_object', root };
@@ -32,7 +43,15 @@ export class Bot {
   }
 
   async chat(message: string) {
+    this.chatState = ChatState.CHATTING;
     const messages = [...this.prompts, ...this.history, { role: "user", content: message }];
-    return getChatCompletions(this.tube, messages, this.config, this.options);
+    return getChatCompletions(this.tube, messages, this.config, this.options, (content) => {
+      this.chatState = ChatState.FINISHED;
+      this.emit('response', content);
+    });
+  }
+
+  get state() {
+    return this.chatState;
   }
 }

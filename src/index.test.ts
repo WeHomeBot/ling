@@ -58,8 +58,14 @@ describe('Line', () => {
       const bot = ling.createBot('bearbobo');
       bot.addPrompt('你用JSON格式回答我，以{开头\n[Example]{answer: "我的回答"}');
       const result = await bot.chat('木头为什么能燃烧？');
-      console.log(result);
-      ling.close();
+      console.log(result);  // 推理完成
+
+      bot.on('response', (content) => {
+        // 流数据推送完成
+        console.log('response finished', content);
+      });
+
+      ling.close(); // 可以直接关闭，关闭时会检查所有bot的状态是否都完成了
     })();
 
     const reader = ling.stream.getReader();

@@ -22,6 +22,7 @@ export async function getChatCompletions(
   messages: any[],
   config: ChatConfig,
   options?: ChatOptions,
+  onComplete?: (content: string) => void
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
@@ -60,9 +61,6 @@ export async function getChatCompletions(
       dangerouslyAllowBrowser: true,
     });
   }
-
-  const onComplete = options.onComplete;
-  delete options.onComplete;
 
   const events = await client.chat.completions.create({
     messages,
@@ -111,7 +109,6 @@ export async function getChatCompletions(
         }
       }
       done = true;
-      if (!tube.canceled && onComplete) onComplete(content);
     })(),
     (async () => {
       let i = 0;
@@ -128,8 +125,9 @@ export async function getChatCompletions(
         if (done || delta <= 0) await sleep(10);
         else await sleep(Math.max(10, 1000 / delta));
       }
+      if (!tube.canceled && onComplete) onComplete(content);
     })(),
   ];
-  await Promise.all(promises);
-  return content;
+  await Promise.race(promises);
+  return isJSONFormat ? JSON.parse(content) : content;
 }

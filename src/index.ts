@@ -1,10 +1,12 @@
 import { Bot } from './bot/index';
 import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./adapter/types";
+import { sleep } from './utils';
 
 export class Ling {
   private tube: Tube;
   private customParams: Record<string, string> = {};
+  private bots: Bot[] = [];
 
   constructor(private config: ChatConfig, private options: ChatOptions = {}) {
     this.tube = new Tube();
@@ -14,6 +16,7 @@ export class Ling {
     const bot = new Bot(this.tube, this.config, this.options);
     bot.setJSONRoot(root);
     bot.addCustomParams(this.customParams);
+    this.bots.push(bot);
     return bot;
   }
 
@@ -21,12 +24,24 @@ export class Ling {
     this.customParams = {...params};
   }
 
-  close() {
-    this.tube.close();
+  private isAllBotsFinished() {
+    return this.bots.every(bot => bot.state === 'finished');
   }
 
-  cancel() {
+  async close() {
+    while (!this.isAllBotsFinished()) {
+      await sleep(100);
+    }
+    this.tube.close();
+    this.bots = [];
+  }
+
+  async cancel() {
+    while (!this.isAllBotsFinished()) {
+      await sleep(100);
+    }
     this.tube.cancel();
+    this.bots = [];
   }
 
   get stream() {
