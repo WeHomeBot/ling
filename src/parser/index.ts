@@ -18,6 +18,7 @@ function isNumeric(str: unknown) {
   return !isNaN(str as number) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(str as string)) // ...and ensure strings of whitespace fail
 }
+
 function isTrue(str: string) {
   return str === 'true';
 }
@@ -137,9 +138,9 @@ export class JSONParser extends EventEmitter {
   }
 
   private traceError(input: string) {
-    // console.error('Invalid TOKEN', input);
+    // console.error('Invalid Token', input);
     this.content.pop();
-    throw new Error('Invalid TOKEN');
+    throw new Error('Invalid Token');
   }
 
   private traceBegin(input: string) {
