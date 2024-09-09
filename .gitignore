@@ -26,3 +26,4 @@ dist-ssr
 
 # Jest
 coverage
+.env

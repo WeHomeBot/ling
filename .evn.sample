@@ -1,0 +1,5 @@
+# For Jest
+
+MODEL_NAME=deepseek-chat
+ENDPOINT=https://api.deepseek.com/chat/completions
+API_KEY=
