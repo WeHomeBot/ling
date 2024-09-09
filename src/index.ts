@@ -36,6 +36,10 @@ export class Ling {
   get canceled() {
     return this.tube.canceled;
   }
+
+  get closed() {
+    return this.tube.closed;
+  }
 }
 
 export { Bot };
