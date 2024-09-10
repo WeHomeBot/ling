@@ -44,8 +44,8 @@ export class Ling {
     this.bots = [];
   }
 
-  sendEvent(event: string, data: any) {
-    this.tube.enqueue({event, data});
+  sendEvent(event: any) {
+    this.tube.enqueue(event);
   }
 
   get stream() {

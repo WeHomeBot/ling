@@ -177,7 +177,7 @@ onMounted(async () => {
 
 ## Custom Event
 
-有时候我们希望发送自定义事件给前端，让前端更新状态，可以在server使用 `ling.sendEvent(event, data)` 推送消息给前端。前端可以从流中接收到 JSON `{event, data}` 进行处理。
+有时候我们希望发送自定义事件给前端，让前端更新状态，可以在server使用 `ling.sendEvent({event, data})` 推送消息给前端。前端可以从流中接收到 JSON `{event, data}` 进行处理。
 
 ```js
 bot.on('inference-done', () => {
