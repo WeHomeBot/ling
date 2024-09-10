@@ -26,7 +26,7 @@ describe('Line', () => {
     });
 
     bot.on('string-response', ({uri, delta}) => {
-      // 流数据推送完成
+      // JSON中的字符串内容推理完成
       console.log('bot string-response', uri, delta);
 
       const bot2 = ling.createBot('bearbobo');
