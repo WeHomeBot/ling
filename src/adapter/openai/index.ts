@@ -23,7 +23,7 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions,
   onComplete?: (content: string) => void,
-  onStringResponse?: (content: {uri: string, delta: string}) => void,
+  onStringResponse?: (content: {uri: string|null, delta: string}) => void,
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
@@ -133,5 +133,6 @@ export async function getChatCompletions(
     })(),
   ];
   await Promise.race(promises);
+  if (!isJSONFormat && onStringResponse) onStringResponse({uri: null, delta: content});
   return content;
 }
