@@ -53,10 +53,13 @@ export class Bot extends EventEmitter {
   async chat(message: string) {
     this.chatState = ChatState.CHATTING;
     const messages = [...this.prompts, ...this.history, { role: "user", content: message }];
-    return getChatCompletions(this.tube, messages, this.config, this.options, (content) => {
-      this.chatState = ChatState.FINISHED;
-      this.emit('response', content);
-    });
+    return getChatCompletions(this.tube, messages, this.config, this.options, 
+      (content) => { // on complete
+        this.chatState = ChatState.FINISHED;
+        this.emit('response', content);
+      }, ({uri, delta}) => { // on string response
+        this.emit('string-response', {uri, delta});
+      });
   }
 
   get state() {

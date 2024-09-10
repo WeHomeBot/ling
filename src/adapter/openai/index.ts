@@ -22,7 +22,8 @@ export async function getChatCompletions(
   messages: any[],
   config: ChatConfig,
   options?: ChatOptions,
-  onComplete?: (content: string) => void
+  onComplete?: (content: string) => void,
+  onStringResponse?: (content: {uri: string, delta: string}) => void,
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
@@ -36,6 +37,9 @@ export async function getChatCompletions(
     });
     parser.on('data', (data) => {
       tube.enqueue(data);
+    });
+    parser.on('string-resolve', (content) => {
+      if (onStringResponse) onStringResponse(content);
     });
   }
 

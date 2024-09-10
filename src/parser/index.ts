@@ -87,7 +87,10 @@ export class JSONParser extends EventEmitter {
       if (this.currentState === LexerStates.Key) {
         this.keyPath.push(str);
       } else if (this.currentState === LexerStates.Value) {
-        // ...
+        this.emit('string-resolve', {
+          uri: this.keyPath.join('/'),
+          delta: str,
+        });
         this.popState();
       }
     } else if (currentState === LexerStates.Number) {
