@@ -32,7 +32,6 @@ describe('JSONParser', () => {
     parser.trace(JSON.stringify(_data));
   })
 
-
   test('sample JSON string Object', done => {
     const _arr: string[] = [];
     const _data = { "name": "bearbobo" };
@@ -119,19 +118,15 @@ describe('JSONParser', () => {
     parser.trace(JSON.stringify(_data));
   });
 
-  // 无效等价类
   test('invalid JSON string', done => {
     try {
       parser.trace('bearbobo');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
 
-  // 边界值分析
-
-  // 最小的有效输入
   test('Minimum valid JSON string', done => {
     const _arr: any[] = [];
     const _data = { "k": "v" };
@@ -149,7 +144,6 @@ describe('JSONParser', () => {
     parser.trace(JSON.stringify(_data));
   });
 
-  // 带有空格的JSON字符串
   test('sample JSON string with space', done => {
     parser.on('finish', (data) => {
       expect(data).toEqual({ 'name': 'bearbobo', 'age': 10, boy: true, hobbies: ['football', 'swiming'], school: null });
@@ -158,13 +152,11 @@ describe('JSONParser', () => {
     parser.trace('{ "name" : "bearbobo" , "age" : 10 , "boy" : true , "hobbies" : [ "football", "swiming" ] , "school" : null } ');
   });
 
-
-  // 错误推测
   test('Empty JSON string', done => {
     try {
       parser.trace('');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -175,7 +167,7 @@ describe('JSONParser', () => {
       parser.trace(`{"name":"bearbobo"}
 {"name":"ling"}`);
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -184,7 +176,7 @@ describe('JSONParser', () => {
     try {
       parser.trace('{1: "bearbobo"}');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -193,7 +185,7 @@ describe('JSONParser', () => {
     try {
       parser.trace('{name:bearbobo}');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -202,7 +194,7 @@ describe('JSONParser', () => {
     try {
       parser.trace(`{'name':"John"}`);
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -211,7 +203,7 @@ describe('JSONParser', () => {
     try {
       parser.trace('{"name":truae}');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
@@ -220,26 +212,43 @@ describe('JSONParser', () => {
     try {
       parser.trace('{"name":undefined}');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
   });
 
-  // test('JSON string with mismatched parentheses', done => {
-  //   try {
-  //     parser.trace('{"name":"bearbobo"');
-  //   } catch (error: any) {
-  //     expect(error.message).toBe('Invalid TOKEN');
-  //     done();
-  //   }
-  // }, 1000);
+  // TODO: JSON string with mismatched parentheses will not emit finish event
+  test('JSON string with mismatched parentheses', done => {
+    try {
+      parser.trace('{"name":"bearbobo"');
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid Token');
+      done();
+    }
+  }, 1000);
 
   test('JSON string containing illegal characters', done => {
     try {
       parser.trace('{"name":"Bearbobo\n"}');
     } catch (error: any) {
-      expect(error.message).toBe('Invalid TOKEN');
+      expect(error.message).toBe('Invalid Token');
       done();
     }
+  });
+
+  // TODO: Duplicate keys will be overwritten in the finish event, but will be retained in the data event
+  test('JSON string with duplicate key', done => {
+    const _arr: any[] = [];
+
+    parser.on('data', (data) => {
+      _arr.push(data)
+    });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({ a: 2048 });
+      expect(_arr).toEqual([{ uri: 'x/y/a', delta: 1024, }, { uri: 'x/y/a', delta: 2048 }]);
+      done();
+    });
+
+    parser.trace('{"a": 1024, "a": 2048}');
   });
 })
