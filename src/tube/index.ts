@@ -16,7 +16,7 @@ export class Tube {
   enqueue(data: unknown) {
     if (!this._closed) {
       if(typeof data !== 'string') {
-        data = JSON.stringify(data);
+        data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
       }
       this.controller?.enqueue(data);
     }

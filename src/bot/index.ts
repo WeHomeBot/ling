@@ -25,7 +25,7 @@ export class Bot extends EventEmitter {
     super();
   }
 
-  setJSONRoot(root: string) {
+  setJSONRoot(root: string | null) {
     this.options.response_format = { type: 'json_object', root };
   }
 

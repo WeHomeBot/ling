@@ -12,7 +12,7 @@ export class Ling {
     this.tube = new Tube();
   }
 
-  createBot(root: string) {
+  createBot(root: string | null = null) {
     const bot = new Bot(this.tube, this.config, this.options);
     bot.setJSONRoot(root);
     bot.addCustomParams(this.customParams);

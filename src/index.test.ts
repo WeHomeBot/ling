@@ -17,7 +17,7 @@ describe('Line', () => {
     const ling = new Ling(config);
 
     // 工作流
-    const bot = ling.createBot('bearbobo');
+    const bot = ling.createBot(/*'bearbobo'*/);
     bot.addPrompt('你用JSON格式回答我，以{开头\n[Example]\n{"answer": "我的回答"}');
     bot.chat('木头为什么能燃烧？');
     bot.on('response', (content) => {
@@ -29,7 +29,7 @@ describe('Line', () => {
       // JSON中的字符串内容推理完成
       console.log('bot string-response', uri, delta);
 
-      const bot2 = ling.createBot('bearbobo');
+      const bot2 = ling.createBot(/*'bearbobo'*/);
       bot2.addPrompt('将我给你的内容扩写成更详细的内容，用JSON格式回答我，将解答内容的详细文字放在\'details\'字段里，将2-3条相关的其他知识点放在\'related_question\'字段里。\n[Example]\n{"details": "我的详细回答", "related_question": ["相关知识内容",...]}');
       bot2.chat(delta);
       bot2.on('response', (content) => {
