@@ -34,7 +34,7 @@ export class Bot extends EventEmitter {
   }
 
   addPrompt(promptTpl: string, promptData: Record<string, string> = {}) {
-    const promptText = nunjucks.renderString(promptTpl, { chatConfig: this.config, chatOptions: this.options, ...promptData, ...this.customParams });
+    const promptText = nunjucks.renderString(promptTpl, { chatConfig: this.config, chatOptions: this.options, ...this.customParams, ...promptData, });
     this.prompts.push({ role: "system", content: promptText });
   }
 
