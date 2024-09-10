@@ -13,8 +13,11 @@ export class Tube {
     });
   }
 
-  enqueue(data: any) {
+  enqueue(data: unknown) {
     if (!this._closed) {
+      if(typeof data !== 'string') {
+        data = JSON.stringify(data);
+      }
       this.controller?.enqueue(data);
     }
   }

@@ -59,6 +59,8 @@ export class Bot extends EventEmitter {
         this.emit('response', content);
       }, ({uri, delta}) => { // on string response
         this.emit('string-response', {uri, delta});
+      }).then((content) => {
+        this.emit('inference-done', content);
       });
   }
 

@@ -44,6 +44,7 @@ describe('Line', () => {
         done();
         return;
       }
+      expect(typeof value).toBe('string');
       console.log(value);
       return reader.read().then(processText);
     });
