@@ -8,8 +8,8 @@ Ling （灵） 是一个支持 LLM 流式输出（Streaming）的工作流框架
 - [x] JSON 的 TOKEN 异常的自动修复
 - [x] 支持复杂的异步工作流
 - [x] 支持流式输出过程中的状态消息
-- [ ] 支持多模态的语音流、图像流、视频流
-- [ ] Clinet SDK
+- [ ] 支持 Server Sent Events
+- [ ] 提供 Clinet SDK
 
 ## Demo
 
@@ -157,4 +157,38 @@ onMounted(async () => {
   <p>{{ response.details_eng }}</p>
   <p v-for="item in response.related_question" :key="item.id"> >>> {{ item }}</p>
 </template>
+```
+
+## Bot 事件
+
+### string-response
+
+当 AI 输出的 JSON 中，字符串字段输出完成时，触发这个事件，返回一个 josnuri 对象。
+
+### inference-done
+
+当 AI 本次推理完成时，触发这个事件，返回完整的输出内容，此时流式输出可能还没结束，数据还在继续发送给前端。
+
+### response
+
+当 AI 本次生成的数据已经全部发送给前端时触发。
+
+> 注意：通常情况下，string-response 先于 inference-done 先于 response。
+
+## Custom Event
+
+有时候我们希望发送自定义事件给前端，让前端更新状态，可以在server使用 `ling.sendEvent(event, data)` 推送消息给前端。前端可以从流中接收到 JSON `{event, data}` 进行处理。
+
+```js
+bot.on('inference-done', () => {
+  bot.sendEvent({event: 'inference-done', state: '大纲生成完毕'});
+});
+```
+
+也可以直接推送 jsonuri 状态，方便前端直接设置
+
+```js
+bot.on('inference-done', () => {
+  bot.sendEvent({uri: 'tocReady', delta: true});
+});
 ```
