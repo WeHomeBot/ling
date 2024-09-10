@@ -28,20 +28,6 @@ export async function getChatCompletions(
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
   const isJSONFormat = options.response_format?.type === 'json_object';
-  let parser: JSONParser | undefined;
-
-  if (isJSONFormat) {
-    const parentPath = options.response_format?.root;
-    parser = new JSONParser({
-      parentPath,
-    });
-    parser.on('data', (data) => {
-      tube.enqueue(data);
-    });
-    parser.on('string-resolve', (content) => {
-      if (onStringResponse) onStringResponse(content);
-    });
-  }
 
   let client: OpenAI | AzureOpenAI;
   let model = '';
@@ -77,6 +63,21 @@ export async function getChatCompletions(
   const buffer: string[] = [];
   let done = false;
 
+  let parser: JSONParser | undefined;
+
+  if (isJSONFormat) {
+    const parentPath = options.response_format?.root;
+    parser = new JSONParser({
+      parentPath,
+    });
+    parser.on('data', (data) => {
+      buffer.push(data);
+    });
+    parser.on('string-resolve', (content) => {
+      if (onStringResponse) onStringResponse(content);
+    });
+  }
+
   const promises: any[] = [
     (async () => {
       for await (const event of events) {
@@ -85,7 +86,11 @@ export async function getChatCompletions(
         if (choice && choice.delta) {
           if (choice.delta.content) {
             content += choice.delta.content;
-            buffer.push(...choice.delta.content);
+            if (parser) {
+              parser.trace(choice.delta.content);
+            } else {
+              buffer.push(...choice.delta.content);
+            }
           }
           // const filterResults = choice.content_filter_results;
           // if (!filterResults) {
@@ -118,11 +123,7 @@ export async function getChatCompletions(
       let i = 0;
       while (!(done && i >= buffer.length)) {
         if (i < buffer.length) {
-          if (parser) {
-            parser.trace(buffer[i]);
-          } else {
-            tube.enqueue(buffer[i]);
-          }
+          tube.enqueue(buffer[i]);
           i++;
         }
         const delta = buffer.length - i;
