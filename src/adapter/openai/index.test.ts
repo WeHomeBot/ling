@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Tube } from '../../tube';
-import type { ChatConfig } from '../types';
+import type { ChatConfig } from '../../types';
 import { getChatCompletions } from './index';
 
 describe('OpenAI', () => {

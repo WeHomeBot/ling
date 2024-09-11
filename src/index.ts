@@ -1,6 +1,6 @@
 import { Bot } from './bot/index';
 import { Tube } from './tube';
-import type { ChatConfig, ChatOptions } from "./adapter/types";
+import type { ChatConfig, ChatOptions } from "./types";
 import { sleep } from './utils';
 
 export class Ling {
@@ -64,5 +64,3 @@ export class Ling {
     return this.tube.closed;
   }
 }
-
-export { Bot, Tube, ChatConfig, ChatOptions };

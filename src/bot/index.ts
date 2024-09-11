@@ -4,7 +4,7 @@ import { Tube } from "../tube";
 import nunjucks from 'nunjucks';
 import { getChatCompletions } from "../adapter/openai";
 
-import type { ChatConfig, ChatOptions } from "../adapter/types";
+import type { ChatConfig, ChatOptions } from "../types";
 import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index";
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;

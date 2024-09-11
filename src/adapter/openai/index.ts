@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { AzureOpenAI } from "openai";
 import "@azure/openai/types";
 
-import { ChatConfig, ChatOptions } from '../types';
+import { ChatConfig, ChatOptions } from '../../types';
 import { Tube } from '../../tube';
 import { JSONParser } from '../../parser';
 import { sleep } from '../../utils';

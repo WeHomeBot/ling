@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Ling } from "./index";
-import type { ChatConfig } from "./adapter/types";
+import type { ChatConfig } from "./types";
 
 describe('Line', () => {
   const apiKey = process.env.API_KEY as string;
