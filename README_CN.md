@@ -30,13 +30,13 @@ Ling 正是为了解决这个问题而诞生的流式框架，它的核心是一
         "topic": "为什么云朵看起来软软的？"
         }
     ]
-    ...
+    // ...
 }
 ```
 
 在流式输入时，内容依次被实时转换成如下数据输出（使用 Server-sent Events）：
 
-```json
+```
 data: {"uri": "outline/0/topic", "delta": "云"}
 data: {"uri": "outline/0/topic", "delta": "朵"}
 data: {"uri": "outline/0/topic", "delta": "是"}
