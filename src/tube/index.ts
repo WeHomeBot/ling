@@ -3,20 +3,32 @@ export class Tube {
   private controller: ReadableStreamDefaultController | null = null;
   private _canceled: boolean = false;
   private _closed: boolean = false;
+  private _sse: boolean = false;
 
-  constructor() {
+  constructor(options = {sse: false}) {
     const self = this;
     this._stream = new ReadableStream({
       start(controller) {
         self.controller = controller;
       }
     });
+    this._sse = options.sse;
+  }
+
+  setSSE(sse: boolean) {
+    this._sse = sse;
   }
 
   enqueue(data: unknown) {
     if (!this._closed) {
       if(typeof data !== 'string') {
+        if(this._sse && (data as any)?.event) {
+          this.controller?.enqueue(`event: ${(data as any).event}\n`);
+        }
         data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
+      }
+      if(this._sse) {
+        data = `data: ${data}\n`;
       }
       this.controller?.enqueue(data);
     }
@@ -24,7 +36,7 @@ export class Tube {
 
   close() {
     this._closed = true;
-    this.controller?.close();
+    if(!this._sse) this.controller?.close();
   }
 
   cancel() {

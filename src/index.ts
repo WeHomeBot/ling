@@ -24,6 +24,10 @@ export class Ling {
     this.customParams = {...params};
   }
 
+  setSSE(sse: boolean) {
+    this.tube.setSSE(sse);
+  }
+
   private isAllBotsFinished() {
     return this.bots.every(bot => bot.state === 'finished');
   }

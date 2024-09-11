@@ -8,7 +8,7 @@ Ling （灵） 是一个支持 LLM 流式输出（Streaming）的工作流框架
 - [x] JSON 的 TOKEN 异常的自动修复
 - [x] 支持复杂的异步工作流
 - [x] 支持流式输出过程中的状态消息
-- [ ] 支持 Server Sent Events
+- [x] 支持 Server Sent Events
 - [ ] 提供 Clinet SDK
 
 ## Demo

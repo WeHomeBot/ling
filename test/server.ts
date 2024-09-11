@@ -22,13 +22,7 @@ app.use(bodyParser.json());
 
 const port = 3000;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-app.post('/api', async (req, res) => {
-  const question = req.body.question;
-
+function workflow(question: string, sse: boolean = false) {
   const config: ChatConfig = {
     model_name,
     api_key: apiKey,
@@ -36,6 +30,8 @@ app.post('/api', async (req, res) => {
   };
 
   const ling = new Ling(config);
+  ling.setSSE(sse);
+
   // 工作流
   const bot = ling.createBot(/*'bearbobo'*/);
   bot.addPrompt('你用JSON格式回答我，以{开头\n[Example]\n{"answer": "我的回答"}');
@@ -63,6 +59,10 @@ app.post('/api', async (req, res) => {
 
   ling.close(); // 可以直接关闭，关闭时会检查所有bot的状态是否都完成了
 
+  return ling;
+}
+
+app.get('/', (req, res) => {
   // setting below headers for Streaming the data
   res.writeHead(200, {
     'Content-Type': "text/event-stream",
@@ -70,9 +70,29 @@ app.post('/api', async (req, res) => {
     'Connection': "keep-alive"
   });
 
-  console.log(ling.stream);
+  const question = req.query.question as string;
+  const ling = workflow(question, true);
+  try {
+    pipeline((ling.stream as any), res);
+  } catch(ex) {
+    ling.cancel();
+  }
+});
 
-  pipeline((ling.stream as any), res);
+app.post('/api', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': "text/event-stream",
+    'Cache-Control': "no-cache",
+    'Connection': "keep-alive"
+  });
+
+  const question = req.body.question;
+  const ling = workflow(question);
+  try {
+    pipeline((ling.stream as any), res);
+  } catch(ex) {
+    ling.cancel();
+  }
 });
 
 app.listen(port, () => {
