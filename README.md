@@ -54,29 +54,29 @@ app.post('/api', async (req, res) => {
   // ------- The work flow start --------
   const ling = new Ling(config);
   const bot = ling.createBot(/*'bearbobo'*/);
-  bot.addPrompt('你用JSON格式回答我，以{开头\n[Example]\n{"answer": "我的回答"}');
+  bot.addPrompt('Respond to me in JSON format, starting with {.\n[Example]\n{"answer": "My response"}');
   bot.chat(question);
   bot.on('string-response', ({uri, delta}) => {
-    // JSON中的字符串内容推理完成，将 anwser 字段里的内容发给第二个 bot
+    // Infer the content of the string in the JSON, and send the content of the 'answer' field to the second bot.
     console.log('bot string-response', uri, delta);
 
     const bot2 = ling.createBot(/*'bearbobo'*/);
-    bot2.addPrompt('将我给你的内容扩写成更详细的内容，用JSON格式回答我，将解答内容的详细文字放在\'details\'字段里，将2-3条相关的其他知识点放在\'related_question\'字段里。\n[Example]\n{"details": "我的详细回答", "related_question": ["相关知识内容",...]}');
+    bot2.addPrompt(`Expand the content I gave you into more detailed content, answer me in JSON format, place the detailed answer text in the 'details' field, and place 2-3 related knowledge points in the 'related_question' field.\n[Example]\n{"details": "My detailed answer", "related_question": [...]}`);
     bot2.chat(delta);
     bot2.on('response', (content) => {
-      // 流数据推送完成
+      // Stream data push completed.
       console.log('bot2 response finished', content);
     });
 
     const bot3 = ling.createBot();
-    bot3.addPrompt('将我给你的内容**用英文**扩写成更详细的内容，用JSON格式回答我，将解答内容的详细英文放在\'details_eng\'字段里。\n[Example]\n{"details_eng": "my answer..."}');
+    bot3.addPrompt('Expand the content I gave you into more detailed content, using Chinese. answer me in JSON format, place the detailed answer in Chinese in the 'details' field.\n[Example]\n{"details_cn": "my answer..."}');
     bot3.chat(delta);
     bot3.on('response', (content) => {
-      // 流数据推送完成
+      // Stream data push completed.
       console.log('bot3 response finished', content);
     });
   });
-  ling.close(); // 可以直接关闭，关闭时会检查所有bot的状态是否都完成了
+  ling.close(); // It can be directly closed, and when closing, it checks whether the status of all bots has been finished.
   // ------- The work flow end --------
 
   // setting below headers for Streaming the data
@@ -104,9 +104,9 @@ import { onMounted, ref } from 'vue';
 import { set, get } from 'jsonuri';
 
 const response = ref({
-  answer: '简答：',
-  details: '详解：',
-  details_eng: 'English Answer:',
+  answer: 'Brief:',
+  details: 'Details:',
+  details_eng: 'Translation:',
   related_question: [
     '?',
     '?',
@@ -120,15 +120,15 @@ onMounted(async () => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      question: '我能躺在云上吗？'
+      question: 'Can I laid on the cloud?'
     }),
   });
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let done = false;
   const data = {
-    answer: '简答：',
-    details: '详解：',
+    answer: 'Brief:',
+    details: 'Details:',
     related_question: [],
   };
   while (!done) {
