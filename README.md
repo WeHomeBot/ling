@@ -192,3 +192,24 @@ bot.on('inference-done', () => {
   bot.sendEvent({uri: 'tocReady', delta: true});
 });
 ```
+
+## Server-sent Events
+
+可以通过 `ling.setSSE(true)` 转换成 [Server-sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) 的数据格式，这样前端就可以用 `EventSource` API 来处理数据。
+
+```js
+const es = new EventSource('http://localhost:3000/?question=我能躺在云上吗？');
+
+// 监听收到推送处理逻辑
+es.onmessage = (e) => {
+  console.log(e.data);
+}
+// 监听建立连接
+es.onopen = () => {
+  console.log('建立连接');
+}
+
+es.onerror = (e) => {
+  console.log(e);
+}
+```
