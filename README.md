@@ -32,13 +32,13 @@ For example, consider the following JSON format:
             "topic": "Why do clouds look soft?"
         }
     ]
-    ...
+    // ...
 }
 ```
 
 During streaming input, the content may be converted in real-time into the following data outputs (using Server-sent Events):
 
-```json
+```
 data: {"uri": "outline/0/topic", "delta": "clo"}
 data: {"uri": "outline/0/topic", "delta": "uds"}
 data: {"uri": "outline/0/topic", "delta": "are"}
