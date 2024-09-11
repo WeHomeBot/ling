@@ -22,8 +22,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-import { Ling } from "../src/index";
-import type { ChatConfig } from "../src/adapter/types";
+import { Ling, type ChatConfig } from "@bearbobo/ling";
 
 import { pipeline } from 'node:stream/promises';
 

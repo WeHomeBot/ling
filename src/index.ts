@@ -65,4 +65,4 @@ export class Ling {
   }
 }
 
-export { Bot };
+export { Bot, Tube, ChatConfig, ChatOptions };
