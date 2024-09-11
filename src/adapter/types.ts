@@ -30,4 +30,5 @@ export interface ChatOptions {
   top_p?: number;
   response_format?: any;
   max_tokens?: number;
+  quiet?: boolean;
 }

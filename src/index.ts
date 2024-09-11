@@ -12,8 +12,8 @@ export class Ling {
     this.tube = new Tube();
   }
 
-  createBot(root: string | null = null) {
-    const bot = new Bot(this.tube, this.config, this.options);
+  createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
+    const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.addCustomParams(this.customParams);
     this.bots.push(bot);

@@ -27,6 +27,10 @@ export async function getChatCompletions(
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
+
+  const isQuiet: boolean = !!options.quiet;
+  delete options.quiet;
+
   const isJSONFormat = options.response_format?.type === 'json_object';
 
   let client: OpenAI | AzureOpenAI;
@@ -123,7 +127,7 @@ export async function getChatCompletions(
       let i = 0;
       while (!(done && i >= buffer.length)) {
         if (i < buffer.length) {
-          tube.enqueue(buffer[i]);
+          if(!isQuiet) tube.enqueue(buffer[i]);
           i++;
         }
         const delta = buffer.length - i;
