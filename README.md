@@ -24,15 +24,15 @@ For example, consider the following JSON format:
 
 ```json
 {
-    "outline": [
-        {
-            "topic": "What are clouds made of?"
-        },
-        {
-            "topic": "Why do clouds look soft?"
-        }
-    ]
-    // ...
+  "outline": [
+    {
+      "topic": "What are clouds made of?"
+    },
+    {
+      "topic": "Why do clouds look soft?"
+    }
+  ]
+  // ...
 }
 ```
 
