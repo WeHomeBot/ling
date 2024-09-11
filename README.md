@@ -18,7 +18,7 @@
 Complex AI workflows, such as those found in Bobo Bear Learning Companion, require multiple agents/bots to process structured data collaboratively. However, considering real-time responses, utilizing structured data outputs is not conducive to enhancing timeliness through a streaming interface.
 
 The commonly used JSON data format, although flexible, has structural integrity, meaning it is difficult to parse correctly until all the content is completely outputted. Of course, other structured data formats like YAML can be adopted, but they are not as powerful and convenient as JSON.
-Ling is a streaming framework created to address this issue. Its core is a real-time converter that can parse incoming JSON data streams character by character, outputting content in the form of JSONURI.
+Ling is a streaming framework created to address this issue. Its core is a real-time converter that can parse incoming JSON data streams character by character, outputting content in the form of [jsonuri](https://github.com/aligay/jsonuri).
 
 For example, consider the following JSON format:
 
