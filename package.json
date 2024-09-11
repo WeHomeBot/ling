@@ -10,9 +10,9 @@
     "test-server": "jiti test/server.ts",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
     "prepublish": "npm run build",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:dev": "vitepress dev docsrc",
+    "docs:build": "vitepress build docsrc --outDir docs",
+    "docs:preview": "vitepress preview docsrc"
   },
   "keywords": [],
   "author": "",

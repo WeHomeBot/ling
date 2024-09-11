@@ -27,3 +27,6 @@ dist-ssr
 # Jest
 coverage
 .env
+
+# VitePress
+cache
