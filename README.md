@@ -11,6 +11,53 @@
 - [x] Supports [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
 - [ ] Provides Client SDK.
 
+## Background
+
+Complex AI workflows, such as those found in Bobo Bear Learning Companion, require multiple agents/bots to process structured data collaboratively. However, considering real-time responses, utilizing structured data outputs is not conducive to enhancing timeliness through a streaming interface.
+
+The commonly used JSON data format, although flexible, has structural integrity, meaning it is difficult to parse correctly until all the content is completely outputted. Of course, other structured data formats like YAML can be adopted, but they are not as powerful and convenient as JSON.
+Ling is a streaming framework created to address this issue. Its core is a real-time converter that can parse incoming JSON data streams character by character, outputting content in the form of JSONURI.
+
+For example, consider the following JSON format:
+
+```json
+{
+    "outline": [
+        {
+            "topic": "What are clouds made of?"
+        },
+        {
+            "topic": "Why do clouds look soft?"
+        }
+    ]
+    ...
+}
+```
+
+During streaming input, the content may be converted in real-time into the following data outputs (using Server-sent Events):
+
+```json
+data: {"uri": "outline/0/topic", "delta": "clo"}
+data: {"uri": "outline/0/topic", "delta": "uds"}
+data: {"uri": "outline/0/topic", "delta": "are"}
+data: {"uri": "outline/0/topic", "delta": "mad"}
+data: {"uri": "outline/0/topic", "delta": "e"}
+data: {"uri": "outline/0/topic", "delta": "of"}
+data: {"uri": "outline/0/topic", "delta": "?"}
+data: {"uri": "outline/1/topic", "delta": "Why"}
+data: {"uri": "outline/1/topic", "delta": "do"}
+data: {"uri": "outline/1/topic", "delta": "clo"}
+data: {"uri": "outline/1/topic", "delta": "uds"}
+data: {"uri": "outline/1/topic", "delta": "loo"}
+data: {"uri": "outline/1/topic", "delta": "k"}
+data: {"uri": "outline/1/topic", "delta": "sof"}
+data: {"uri": "outline/1/topic", "delta": "t"}
+data: {"uri": "outline/1/topic", "delta": "?"}
+...
+```
+
+This method of real-time data transmission facilitates immediate front-end processing.
+
 ## Demo
 
 Server 
