@@ -80,7 +80,6 @@ export class JSONParser extends EventEmitter {
   }
 
   private reduceState() {
-    // TODO
     const currentState = this.currentState;
     if (currentState === LexerStates.String) {
       const str = this.currentToken;
@@ -218,8 +217,8 @@ export class JSONParser extends EventEmitter {
     if (input === '\n') {
       this.traceError(input);
     }
-
-    if (input === '"' && (this.currentToken[this.currentToken.length - 1] !== '\\' || this.currentToken[this.currentToken.length - 2] === '\\')) {
+    const currentToken = this.currentToken.replace(/\\\\/g, '');  // 去掉转义的反斜杠
+    if (input === '"' && currentToken[this.currentToken.length - 1] !== '\\') {
       this.reduceState();
       if (this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
         this.pushState(LexerStates.Breaker);
