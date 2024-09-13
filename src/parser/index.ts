@@ -159,6 +159,9 @@ export class JSONParser extends EventEmitter {
     // console.error('Invalid Token', input);
     this.content.pop();
     if(this.autoFix) {
+      if (this.currentState === LexerStates.Begin || this.currentState === LexerStates.Finish) {
+        return;
+      }
       if (this.currentState === LexerStates.Breaker) {
         if(this.lastPopStateToken?.state === LexerStates.String) {
           // 修复 token 引号转义

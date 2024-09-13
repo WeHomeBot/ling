@@ -578,6 +578,31 @@ rbo"bo,
       "age" : 10a,
       "school" : [1, 2, 3]
     }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": "nul", "0text": true, "age": "10a", "school": [1, 2, 3]});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON with other text', done => {
+    // 当作漏掉引号处理
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `我们可以输出如下JSON数据：
+    \`\`\`json
+    {
+      "name” : nul,
+      "0text" : true,
+      "age" : 10a,
+      "school" : [1, 2, 3]
+    }
+    \`\`\``;
     parser.on('data', (data) => { 
       console.log(data);
     });
