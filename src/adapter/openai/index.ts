@@ -73,6 +73,7 @@ export async function getChatCompletions(
     const parentPath = options.response_format?.root;
     parser = new JSONParser({
       parentPath,
+      autoFix: true,
     });
     parser.on('data', (data) => {
       buffer.push(data);

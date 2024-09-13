@@ -392,7 +392,7 @@ describe('JSONParser', () => {
     parser.trace(input);
   });
 
-  test('JSON autoFix lost quotation marks of key 5', done => {
+  test('JSON autoFix ignore key line break', done => {
     // key中的回车符
     const parser = new JSONParser({
       debug: false,
@@ -408,6 +408,181 @@ me" : "bearbobo",
     // });
     parser.on('finish', (data) => {
       expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix ignore value line break', done => {
+    // key中的回车符
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo",
+      "age" : 10,
+      "content" : "hello
+world"
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10, "content": "hello\nworld"});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost value', done => {
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : ,
+      "age" : 
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": null, "age": null});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of string value 1', done => {
+    // 缺少左引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : bearbobo",
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of string value 1', done => {
+    // 缺少右引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo,
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix extra quotation marks of string value 1', done => {
+    // 缺少右引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "be"a
+rbo"bo,
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'be\"a\nrbo\"bo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix incorrect quotation marks 1', done => {
+    // 不正确的引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      'name" : "bearbobo",
+      "age" : 10
+    }`;
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix incorrect quotation marks 2', done => {
+    // 不正确的引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name” : "bearbobo",
+      "age" : 10
+    }`;
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix incorrect quotation marks 3', done => {
+    // 不正确的引号 - 这里不做处理
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name” : ‘bearbobo',
+      "age" : 10
+    }`;
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": '‘bearbobo\'', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix incorrect quotation marks 4', done => {
+    // 当作漏掉引号处理
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name” : nul,
+      "0text" : true,
+      "age" : 10a,
+      "school" : [1, 2, 3]
+    }`;
+    parser.on('data', (data) => { 
+      console.log(data);
+    });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": "nul", "0text": true, "age": "10a", "school": [1, 2, 3]});
       done();
     });
     parser.trace(input);
