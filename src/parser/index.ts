@@ -36,6 +36,7 @@ export class JSONParser extends EventEmitter {
   private arrayIndexStack: any[] = [];
   private autoFix = false;
   private debug = false;
+  private lastPopStateToken: { state: LexerStates, token: string } | null = null;
 
   constructor(options: { autoFix?: boolean, parentPath?: string | null, debug?: boolean } = { autoFix: false, parentPath: null, debug: false }) {
     super();
@@ -46,6 +47,10 @@ export class JSONParser extends EventEmitter {
 
   get currentState() {
     return this.stateStack[this.stateStack.length - 1];
+  }
+
+  get lastState() {
+    return this.stateStack[this.stateStack.length - 2];
   }
 
   get arrayIndex() {
@@ -67,6 +72,7 @@ export class JSONParser extends EventEmitter {
   }
 
   private popState() {
+    this.lastPopStateToken = { state: this.currentState, token: this.currentToken };
     this.currentToken = '';
     const state = this.stateStack.pop();
     this.log('popState', state, this.currentState);
@@ -128,6 +134,7 @@ export class JSONParser extends EventEmitter {
       if (this.currentState === LexerStates.Begin) {
         this.popState();
         this.pushState(LexerStates.Finish);
+        // console.log('finish', this.content.join(''));
         this.emit('finish', JSON.parse(this.content.join('')));
       } else if (this.currentState === LexerStates.Value) {
         this.popState();
@@ -142,6 +149,49 @@ export class JSONParser extends EventEmitter {
   private traceError(input: string) {
     // console.error('Invalid Token', input);
     this.content.pop();
+    if(this.autoFix) {
+      if(this.currentState === LexerStates.String) {
+        // 回车的转义
+        if(input === '\n') {
+          if(this.lastState === LexerStates.Value) {
+            this.currentToken += '\\n';
+            this.content.push('\\n');
+          }
+          return;
+        }
+      }
+      if(this.currentState === LexerStates.Key) {
+        // key 的引号后面还有多余内容，忽略掉
+        if(input !== '"') {
+          // 处理多余的左引号 eg. {""name": "bearbobo"}
+          if(this.lastPopStateToken?.token === '') {
+            this.content.pop();
+            this.content.push(input);
+            this.pushState(LexerStates.String);
+          }
+        }
+        return;
+      }
+
+      if(this.currentState === LexerStates.Object) {
+        // 直接缺少了 key
+        if(input === ':') {
+          this.pushState(LexerStates.Key);
+          this.pushState(LexerStates.String);
+          this.currentToken = '';
+          this.content.push('"');
+          this.trace(input);
+          return;
+        }
+        // 一般是key少了左引号
+        this.pushState(LexerStates.Key);
+        this.pushState(LexerStates.String);
+        this.currentToken = '';
+        this.content.push('"');
+        this.trace(input);
+        return;
+      }
+    }
     throw new Error('Invalid Token');
   }
 
@@ -219,13 +269,24 @@ export class JSONParser extends EventEmitter {
     }
     const currentToken = this.currentToken.replace(/\\\\/g, '');  // 去掉转义的反斜杠
     if (input === '"' && currentToken[this.currentToken.length - 1] !== '\\') {
+      // 字符串结束符
       this.reduceState();
-      if (this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
+      if (this.lastState === LexerStates.Value) {
         this.pushState(LexerStates.Breaker);
       }
+    } else if(this.autoFix && input === ':' && this.lastState === LexerStates.Key) {
+      // 默认这种情况下少了右引号，补一个
+      this.content.pop();
+      for(let i = this.content.length - 1; i >= 0; i--) {
+        if(this.content[i].trim()) {
+          break;
+        }
+        this.content.pop();
+      }
+      this.trace('":');
     } else {
       this.currentToken += input;
-      if (this.stateStack[this.stateStack.length - 2] === LexerStates.Value) {
+      if (this.lastState === LexerStates.Value) {
         this.emit('data', {
           uri: this.keyPath.join('/'),
           delta: input,
@@ -236,11 +297,14 @@ export class JSONParser extends EventEmitter {
 
   private traceKey(input: string) {
     if (isWhiteSpace(input)) {
+      this.content.pop();
       return;
     }
     if (input === ':') {
       this.popState();
       this.pushState(LexerStates.Value);
+    } else {
+      this.traceError(input);
     }
   }
 

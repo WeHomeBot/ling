@@ -251,4 +251,165 @@ describe('JSONParser', () => {
 
     parser.trace('{"a": 1024, "a": 2048}');
   });
+
+  test('JSON autoFix extra quotation marks of key 1', done => {
+    // 多一个右引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name"": "bearbobo",
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({name: 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix extra quotation marks of key 2', done => {
+    // 多一个左引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      ""name": "bearbobo",
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({name: 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix extra quotation marks of key 3', done => {
+    // key 中间多了引号，后面的内容忽略，注意这里和 jsonrepaire 逻辑不一样，不做转义替换
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name"abc": "bearbobo",
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({name: 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of key 1', done => {
+    // 缺失右引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo",
+      "age : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of key 2', done => {
+    // 缺失左引号
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo",
+      age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of key 3', done => {
+    // 两个引号都缺失
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo",
+      age : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', age: 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of key 4', done => {
+    // 整个key丢失
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name" : "bearbobo",
+       : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "": 10});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON autoFix lost quotation marks of key 5', done => {
+    // key中的回车符
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "na
+me" : "bearbobo",
+      "age" : 10
+    }`;
+    // parser.on('data', (data) => { 
+    //   console.log(data);
+    // });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+      done();
+    });
+    parser.trace(input);
+  });
 })
