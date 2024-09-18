@@ -21,20 +21,26 @@ export class Tube {
 
   enqueue(data: unknown) {
     if (!this._closed) {
-      if(typeof data !== 'string') {
-        if(this._sse && (data as any)?.event) {
-          this.controller?.enqueue(`event: ${(data as any).event}\n`);
+      try {
+        if(typeof data !== 'string') {
+          if(this._sse && (data as any)?.event) {
+            this.controller?.enqueue(`event: ${(data as any).event}\n`);
+          }
+          data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
         }
-        data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
+        if(this._sse) {
+          data = `data: ${data}\n`;
+        }
+        this.controller?.enqueue(data);
+      } catch(ex) {
+        this._closed = true;
+        // console.error('enqueue error:', ex);
       }
-      if(this._sse) {
-        data = `data: ${data}\n`;
-      }
-      this.controller?.enqueue(data);
     }
   }
 
   close() {
+    if(this._closed) return;
     this._closed = true;
     if(!this._sse) this.controller?.close();
   }

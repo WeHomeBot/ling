@@ -62,7 +62,7 @@ function workflow(question: string, sse: boolean = false) {
   return ling;
 }
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   // setting below headers for Streaming the data
   res.writeHead(200, {
     'Content-Type': "text/event-stream",
@@ -73,24 +73,25 @@ app.get('/', (req, res) => {
   const question = req.query.question as string;
   const ling = workflow(question, true);
   try {
-    pipeline((ling.stream as any), res);
+    await pipeline((ling.stream as any), res);
   } catch(ex) {
     ling.cancel();
   }
 });
 
 app.post('/api', async (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': "text/event-stream",
-    'Cache-Control': "no-cache",
-    'Connection': "keep-alive"
-  });
+  // res.writeHead(200, {
+  //   'Content-Type': "text/event-stream",
+  //   'Cache-Control': "no-cache",
+  //   'Connection': "keep-alive"
+  // });
 
   const question = req.body.question;
   const ling = workflow(question);
   try {
-    pipeline((ling.stream as any), res);
+    await pipeline((ling.stream as any), res);
   } catch(ex) {
+    console.log(1111);
     ling.cancel();
   }
 });
