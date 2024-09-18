@@ -1,37 +1,45 @@
-export class Tube {
+import EventEmitter from 'node:events';
+import { shortId } from "../utils";
+
+export class Tube extends EventEmitter {
   private _stream: ReadableStream;
   private controller: ReadableStreamDefaultController | null = null;
   private _canceled: boolean = false;
   private _closed: boolean = false;
   private _sse: boolean = false;
+  private messageIndex = 0;
 
-  constructor(options = {sse: false}) {
+  constructor(private session_id: string = shortId()) {
+    super();
     const self = this;
     this._stream = new ReadableStream({
       start(controller) {
         self.controller = controller;
       }
     });
-    this._sse = options.sse;
   }
 
   setSSE(sse: boolean) {
     this._sse = sse;
   }
 
-  enqueue(data: unknown, id: string) {
+  enqueue(data: unknown, isQuiet: boolean = false) {
+    const id = `${this.session_id}:${this.messageIndex++}`;
     if (!this._closed) {
       try {
         if(typeof data !== 'string') {
           if(this._sse && (data as any)?.event) {
-            this.controller?.enqueue(`event: ${(data as any).event}\n`);
+            const event = `event: ${(data as any).event}\n`
+            if(!isQuiet) this.controller?.enqueue(event);
+            this.emit('message', {id, data: event});
           }
           data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
         }
         if(this._sse) {
-          data = `data: ${data}\nid: ${id}\n\n`;
+          data = `data: ${(data as string).replace(/\n$/,'')}\nid: ${id}\n\n`;
         }
-        this.controller?.enqueue(data);
+        if(!isQuiet) this.controller?.enqueue(data);
+        this.emit('message', {id, data});
       } catch(ex) {
         this._closed = true;
         // console.error('enqueue error:', ex);

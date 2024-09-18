@@ -19,6 +19,7 @@ export interface ChatConfig {
   endpoint: string;
   api_key: string;
   api_version?: string;
+  session_id?: string;
   max_tokens?: number;
 }
 

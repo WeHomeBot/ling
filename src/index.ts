@@ -9,19 +9,24 @@ export class Ling extends EventEmitter {
   private tube: Tube;
   private customParams: Record<string, string> = {};
   private bots: Bot[] = [];
+  private session_id = shortId();
 
   constructor(private config: ChatConfig, private options: ChatOptions = {}) {
     super();
-    this.tube = new Tube();
+    if(config.session_id) {
+      this.session_id = config.session_id;
+      delete config.session_id;
+    }
+    this.tube = new Tube(this.session_id);
+    this.tube.on('message', (message) => {
+      this.emit('message', message);
+    });
   }
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
     const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.addCustomParams(this.customParams);
-    bot.on('message', (message) => {
-      this.emit('message', message);
-    });
     this.bots.push(bot);
     return bot;
   }
@@ -55,7 +60,7 @@ export class Ling extends EventEmitter {
   }
 
   sendEvent(event: any) {
-    this.tube.enqueue(event, shortId());
+    this.tube.enqueue(event);
   }
 
   get stream() {
@@ -68,5 +73,9 @@ export class Ling extends EventEmitter {
 
   get closed() {
     return this.tube.closed;
+  }
+
+  get id() {
+    return this.session_id;
   }
 }

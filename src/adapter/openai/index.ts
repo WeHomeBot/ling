@@ -6,7 +6,7 @@ import "@azure/openai/types";
 import { ChatConfig, ChatOptions } from '../../types';
 import { Tube } from '../../tube';
 import { JSONParser } from '../../parser';
-import { sleep, shortId } from '../../utils';
+import { sleep } from '../../utils';
 
 import "dotenv/config";
 
@@ -23,8 +23,7 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions,
   onComplete?: (content: string) => void,
-  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
-  onMessage?: (content: {id: string, data: any}) => void,
+  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
@@ -84,7 +83,6 @@ export async function getChatCompletions(
     });
   }
 
-  const chatId = shortId();
   const promises: any[] = [
     (async () => {
       for await (const event of events) {
@@ -130,9 +128,7 @@ export async function getChatCompletions(
       let i = 0;
       while (!(done && i >= buffer.length)) {
         if (i < buffer.length) {
-          const messageID = `${chatId}:${i}`;
-          if(!isQuiet) tube.enqueue(buffer[i], messageID);
-          if(onMessage) onMessage({id: messageID, data: buffer[i]});
+          tube.enqueue(buffer[i], isQuiet);
           i++;
         }
         const delta = buffer.length - i;
