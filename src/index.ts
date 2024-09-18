@@ -1,14 +1,17 @@
+import EventEmitter from 'node:events';
+
 import { Bot } from './bot/index';
 import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./types";
-import { sleep } from './utils';
+import { sleep, shortId } from './utils';
 
-export class Ling {
+export class Ling extends EventEmitter {
   private tube: Tube;
   private customParams: Record<string, string> = {};
   private bots: Bot[] = [];
 
   constructor(private config: ChatConfig, private options: ChatOptions = {}) {
+    super();
     this.tube = new Tube();
   }
 
@@ -16,6 +19,9 @@ export class Ling {
     const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.addCustomParams(this.customParams);
+    bot.on('message', (message) => {
+      this.emit('message', message);
+    });
     this.bots.push(bot);
     return bot;
   }
@@ -49,7 +55,7 @@ export class Ling {
   }
 
   sendEvent(event: any) {
-    this.tube.enqueue(event);
+    this.tube.enqueue(event, shortId());
   }
 
   get stream() {

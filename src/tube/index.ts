@@ -19,7 +19,7 @@ export class Tube {
     this._sse = sse;
   }
 
-  enqueue(data: unknown) {
+  enqueue(data: unknown, id: string) {
     if (!this._closed) {
       try {
         if(typeof data !== 'string') {
@@ -29,7 +29,7 @@ export class Tube {
           data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
         }
         if(this._sse) {
-          data = `data: ${data}\n`;
+          data = `data: ${data}\nid: ${id}\n\n`;
         }
         this.controller?.enqueue(data);
       } catch(ex) {

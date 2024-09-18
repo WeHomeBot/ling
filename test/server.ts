@@ -57,6 +57,10 @@ function workflow(question: string, sse: boolean = false) {
     });
   });
 
+  ling.on('message', (message) => {
+    console.log('ling message', message);
+  });
+
   ling.close(); // 可以直接关闭，关闭时会检查所有bot的状态是否都完成了
 
   return ling;

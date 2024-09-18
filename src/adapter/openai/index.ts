@@ -6,7 +6,7 @@ import "@azure/openai/types";
 import { ChatConfig, ChatOptions } from '../../types';
 import { Tube } from '../../tube';
 import { JSONParser } from '../../parser';
-import { sleep } from '../../utils';
+import { sleep, shortId } from '../../utils';
 
 import "dotenv/config";
 
@@ -23,7 +23,8 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions,
   onComplete?: (content: string) => void,
-  onStringResponse?: (content: {uri: string|null, delta: string}) => void,
+  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
+  onMessage?: (content: {id: string, data: any}) => void,
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
@@ -83,6 +84,7 @@ export async function getChatCompletions(
     });
   }
 
+  const chatId = shortId();
   const promises: any[] = [
     (async () => {
       for await (const event of events) {
@@ -128,7 +130,9 @@ export async function getChatCompletions(
       let i = 0;
       while (!(done && i >= buffer.length)) {
         if (i < buffer.length) {
-          if(!isQuiet) tube.enqueue(buffer[i]);
+          const messageID = `${chatId}:${i}`;
+          if(!isQuiet) tube.enqueue(buffer[i], messageID);
+          if(onMessage) onMessage({id: messageID, data: buffer[i]});
           i++;
         }
         const delta = buffer.length - i;
@@ -139,6 +143,6 @@ export async function getChatCompletions(
     })(),
   ];
   await Promise.race(promises);
-  if (!isJSONFormat && onStringResponse) onStringResponse({uri: null, delta: content});
+  if (!isJSONFormat && onStringResponse) onStringResponse(content);
   return content; // inference done
 }
