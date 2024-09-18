@@ -33,10 +33,12 @@ interface ChatOptions {
 }
 ```
 
-## Ling
+## Ling <sub style="color: grey">extends</sub> EventEmitter
 
-```js
-constructor(private config: ChatConfig, private options: ChatOptions = {}) {
+::: details constructor(private config: ChatConfig, private options: ChatOptions = {})
+```ts
+{
+  super();
   this.tube = new Tube();
 }
 ```
@@ -167,6 +169,17 @@ Whether the workflow has been closed.
 
 Whether the workflow has been canceled.
 
+### <sub style="color: grey">event</sub> message
+
+The message sent to client with an unique event id.
+
+```json
+{
+  "id": "t2ke48g1m3:293",
+  "data": { "uri": "related_question/2", "delta": "s" }
+}
+```
+
 ## Bot <sub style="color: grey">extends</sub> EventEmitter
 
 ### addPrompt
@@ -205,8 +218,10 @@ Add chat history records.
     (content) => { // on complete
       this.chatState = ChatState.FINISHED;
       this.emit('response', content);
-    }, ({uri, delta}) => { // on string response
-      this.emit('string-response', {uri, delta});
+    }, (content) => { // on string response
+      this.emit('string-response', content);
+    }, ({id, data}) => {
+      this.emit('message', {id, data});
     }).then((content) => {
       this.emit('inference-done', content);
     });
