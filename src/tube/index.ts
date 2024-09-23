@@ -53,10 +53,10 @@ export class Tube extends EventEmitter {
     if(!this._sse) this.controller?.close();
   }
 
-  cancel() {
+  async cancel() {
     this._canceled = true;
     this._closed = true;
-    this.stream.cancel();
+    try { await this.stream.cancel(); } catch(ex) {}
   }
 
   get canceled() {

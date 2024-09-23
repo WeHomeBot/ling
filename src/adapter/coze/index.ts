@@ -97,7 +97,11 @@ export async function getChatCompletions(
   });
 
   const reader = res.body?.getReader();
-  if(!reader) throw new Error('No reader');
+  if(!reader) {
+    console.error('No reader');
+    tube.cancel();
+    return;
+  }
 
   let content = '';
   const enc = new TextDecoder('utf-8');
@@ -125,7 +129,10 @@ export async function getChatCompletions(
         }
         buffer = '';
         if (data.error_information) {
-          throw new Error(data.error_information.err_msg);
+          // console.error(data.error_information.err_msg);
+          tube.enqueue({event: 'error', data});
+          tube.cancel();
+          break;
         }
         const message = data.message;
         if (message) {
@@ -170,6 +177,14 @@ export async function getChatCompletions(
             tube.enqueue({event: 'tool_response', data: message.content}, isQuiet);
           }
         }
+      } else {
+        try {
+          const data = JSON.parse(event);
+          if (data.code) {
+            tube.enqueue({event: 'error', data});
+            tube.cancel();
+          }
+        } catch(ex) {}
       }
     }
   } while (1);
