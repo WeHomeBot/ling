@@ -83,6 +83,37 @@ app.get('/', async (req, res) => {
   }
 });
 
+app.get('/ai/chat', async (req, res) => {
+  // setting below headers for Streaming the data
+  res.writeHead(200, {
+    'Content-Type': "text/event-stream",
+    'Cache-Control': "no-cache",
+    'Connection': "keep-alive"
+  });
+
+  const question = req.query.question as string;
+  const config: ChatConfig = {
+    model_name,
+    api_key: apiKey,
+    endpoint: endpoint,
+  };
+
+  const ling = new Ling(config);
+  ling.setSSE(true);
+
+  const bot = ling.createBot();
+  // bot.addPrompt(prompt);
+  console.log(question);
+  bot.chat(question);
+  ling.close();
+
+  try {
+    await pipeline((ling.stream as any), res);
+  } catch(ex) {
+    ling.cancel();
+  }
+});
+
 app.post('/api', async (req, res) => {
   // res.writeHead(200, {
   //   'Content-Type': "text/event-stream",
@@ -95,7 +126,6 @@ app.post('/api', async (req, res) => {
   try {
     await pipeline((ling.stream as any), res);
   } catch(ex) {
-    console.log(1111);
     ling.cancel();
   }
 });

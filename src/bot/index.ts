@@ -61,10 +61,25 @@ export class Bot extends EventEmitter {
   }
 
   async chat(message: string) {
-    this.chatState = ChatState.CHATTING;
-    const messages = [...this.prompts, ...this.history, { role: "user", content: message }];
-    if(this.config.model_name.startsWith('coze:')) {
-      return getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
+    try {
+      this.chatState = ChatState.CHATTING;
+      const prompts = this.prompts.length > 0 ? [...this.prompts] : [{
+        role: 'system',
+        content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
+      }];
+      const messages = [...prompts, ...this.history, { role: "user", content: message }];
+      if(this.config.model_name.startsWith('coze:')) {
+        return await getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
+          (content) => { // on complete
+            this.chatState = ChatState.FINISHED;
+            this.emit('response', content);
+          }, (content) => { // on string response
+            this.emit('string-response', content);
+          }).then((content) => {
+            this.emit('inference-done', content);
+          });
+      }
+      return await getChatCompletions(this.tube, messages, this.config, this.options, 
         (content) => { // on complete
           this.chatState = ChatState.FINISHED;
           this.emit('response', content);
@@ -73,16 +88,11 @@ export class Bot extends EventEmitter {
         }).then((content) => {
           this.emit('inference-done', content);
         });
+    } catch(ex: any) {
+      // this.emit('error', ex.message);
+      this.tube.enqueue({event: 'error', data: ex.message});
+      this.tube.cancel();
     }
-    return getChatCompletions(this.tube, messages, this.config, this.options, 
-      (content) => { // on complete
-        this.chatState = ChatState.FINISHED;
-        this.emit('response', content);
-      }, (content) => { // on string response
-        this.emit('string-response', content);
-      }).then((content) => {
-        this.emit('inference-done', content);
-      });
   }
 
   get state() {
