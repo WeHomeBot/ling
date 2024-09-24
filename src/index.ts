@@ -26,12 +26,12 @@ export class Ling extends EventEmitter {
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
     const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
-    bot.addCustomParams(this.customParams);
+    bot.setCustomParams(this.customParams);
     this.bots.push(bot);
     return bot;
   }
 
-  addCustomParams(params: Record<string, string>) {
+  setCustomParams(params: Record<string, string>) {
     this.customParams = {...params};
   }
 

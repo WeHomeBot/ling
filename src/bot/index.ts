@@ -30,7 +30,7 @@ export class Bot extends EventEmitter {
     this.options.response_format = { type: 'json_object', root };
   }
 
-  addCustomParams(params: Record<string, string>) {
+  setCustomParams(params: Record<string, string>) {
     this.customParams = {...params};
   }
 
@@ -39,8 +39,17 @@ export class Bot extends EventEmitter {
     this.prompts.push({ role: "system", content: promptText });
   }
 
+  setPrompt(promptTpl: string, promptData: Record<string, string> = {}) {
+    this.prompts = [];
+    this.addPrompt(promptTpl, promptData);
+  }
+
   addHistory(messages: ChatCompletionMessageParam []) {
     this.history.push(...messages);
+  }
+
+  setHistory(messages: ChatCompletionMessageParam []) {
+    this.history = messages;
   }
 
   userMessage(message: string): ChatCompletionUserMessageParam {

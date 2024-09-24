@@ -52,7 +52,7 @@ interface ChatOptions {
   options: Partial<ChatOptions> = {}) {
   const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
   bot.setJSONRoot(root);
-  bot.addCustomParams(this.customParams);
+  bot.setCustomParams(this.customParams);
   this.bots.push(bot);
   return bot;
 }
@@ -61,9 +61,9 @@ interface ChatOptions {
 
 Create a Bot object using the given config and options, where 'root' indicates the default root URI path for the output JSON content.
 
-### addCustomParams
+### setCustomParams
 
-::: details addCustomParams(params: Record&lt;string, string&gt;)
+::: details setCustomParams(params: Record&lt;string, string&gt;)
 ```ts
 {
   this.customParams = {...params};
