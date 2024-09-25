@@ -50,6 +50,7 @@ export class Tube extends EventEmitter {
   close() {
     if(this._closed) return;
     this.enqueue({event: 'finished'});
+    this.emit('finished');
     this._closed = true;
     if(!this._sse) this.controller?.close();
   }
@@ -60,6 +61,7 @@ export class Tube extends EventEmitter {
     this._closed = true;
     try {
       this.enqueue({event: 'canceled'});
+      this.emit('canceled');
       await this.stream.cancel();
     } catch(ex) {}
   }

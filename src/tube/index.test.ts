@@ -42,7 +42,7 @@ describe('Tube', () => {
     const reader = tube.stream.getReader();
     reader.read().then(function processText({ done:_done, value }) : any {
       if (_done) {
-        expect(_arr).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']);
+        expect(_arr).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', "{\"event\":\"finished\"}\n"]);
         done();
         return;
       }
