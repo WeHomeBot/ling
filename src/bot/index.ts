@@ -24,12 +24,6 @@ export class Bot extends EventEmitter {
 
   constructor(private tube: Tube, private config: ChatConfig, private options: ChatOptions = {}) {
     super();
-    this.tube.on('finished', () => {
-      this.emit('finished');
-    });
-    this.tube.on('canceled', () => {
-      this.emit('canceled');
-    });
   }
 
   setJSONRoot(root: string | null) {
