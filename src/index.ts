@@ -8,12 +8,12 @@ import { sleep, shortId } from './utils';
 export type { ChatConfig, ChatOptions } from "./types";
 
 export class Ling extends EventEmitter {
-  private tube: Tube;
-  private customParams: Record<string, string> = {};
-  private bots: Bot[] = [];
-  private session_id = shortId();
+  protected tube: Tube;
+  protected customParams: Record<string, string> = {};
+  protected bots: Bot[] = [];
+  protected session_id = shortId();
 
-  constructor(private config: ChatConfig, private options: ChatOptions = {}) {
+  constructor(protected config: ChatConfig, protected options: ChatOptions = {}) {
     super();
     if(config.session_id) {
       this.session_id = config.session_id;
@@ -47,7 +47,7 @@ export class Ling extends EventEmitter {
     this.tube.setSSE(sse);
   }
 
-  private isAllBotsFinished() {
+  protected isAllBotsFinished() {
     return this.bots.every(bot => bot.state === 'finished');
   }
 
