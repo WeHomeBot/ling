@@ -12,7 +12,7 @@ export type { Tube } from "./tube";
 export { Bot, WorkState } from "./bot";
 
 export class Ling extends EventEmitter {
-  protected tube: Tube;
+  protected _tube: Tube;
   protected customParams: Record<string, string> = {};
   protected bots: Bot[] = [];
   protected session_id = shortId();
@@ -23,20 +23,20 @@ export class Ling extends EventEmitter {
       this.session_id = config.session_id;
       delete config.session_id;
     }
-    this.tube = new Tube(this.session_id);
-    this.tube.on('message', (message) => {
+    this._tube = new Tube(this.session_id);
+    this._tube.on('message', (message) => {
       this.emit('message', message);
     });
-    this.tube.on('finished', () => {
+    this._tube.on('finished', () => {
       this.emit('finished');
     });
-    this.tube.on('canceled', () => {
+    this._tube.on('canceled', () => {
       this.emit('canceled');
     });
   }
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
-    const bot = new ChatBot(this.tube, {...this.config, ...config}, {...this.options, ...options});
+    const bot = new ChatBot(this._tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
     this.bots.push(bot);
@@ -52,7 +52,7 @@ export class Ling extends EventEmitter {
   }
 
   setSSE(sse: boolean) {
-    this.tube.setSSE(sse);
+    this._tube.setSSE(sse);
   }
 
   protected isAllBotsFinished() {
@@ -63,7 +63,7 @@ export class Ling extends EventEmitter {
     while (!this.isAllBotsFinished()) {
       await sleep(100);
     }
-    this.tube.close();
+    this._tube.close();
     this.bots = [];
   }
 
@@ -71,12 +71,16 @@ export class Ling extends EventEmitter {
     while (!this.isAllBotsFinished()) {
       await sleep(100);
     }
-    this.tube.cancel();
+    this._tube.cancel();
     this.bots = [];
   }
 
   sendEvent(event: any) {
-    this.tube.enqueue(event);
+    this._tube.enqueue(event);
+  }
+
+  get tube() {
+    return this._tube;
   }
 
   get model() {
@@ -84,15 +88,15 @@ export class Ling extends EventEmitter {
   }
 
   get stream() {
-    return this.tube.stream;
+    return this._tube.stream;
   }
 
   get canceled() {
-    return this.tube.canceled;
+    return this._tube.canceled;
   }
 
   get closed() {
-    return this.tube.closed;
+    return this._tube.closed;
   }
 
   get id() {
