@@ -10,17 +10,21 @@ import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessagePa
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
-enum ChatState {
+export enum WorkState {
   INIT = 'init',
-  CHATTING = 'chatting',
+  WORKING = 'chatting',
   FINISHED = 'finished',
 }
 
-export class Bot extends EventEmitter {
+export abstract class Bot extends EventEmitter {
+  abstract get state(): WorkState;
+}
+
+export class ChatBot extends Bot {
   private prompts: ChatCompletionSystemMessageParam[] = [];
   private history: ChatCompletionMessageParam[] = [];
   private customParams: Record<string, string> = {};
-  private chatState = ChatState.INIT;
+  private chatState = WorkState.INIT;
 
   constructor(private tube: Tube, private config: ChatConfig, private options: ChatOptions = {}) {
     super();
@@ -62,7 +66,7 @@ export class Bot extends EventEmitter {
 
   async chat(message: string) {
     try {
-      this.chatState = ChatState.CHATTING;
+      this.chatState = WorkState.WORKING;
       const prompts = this.prompts.length > 0 ? [...this.prompts] : [{
         role: 'system',
         content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
@@ -71,7 +75,7 @@ export class Bot extends EventEmitter {
       if(this.config.model_name.startsWith('coze:')) {
         return await getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
           (content) => { // on complete
-            this.chatState = ChatState.FINISHED;
+            this.chatState = WorkState.FINISHED;
             this.emit('response', content);
           }, (content) => { // on string response
             this.emit('string-response', content);
@@ -81,7 +85,7 @@ export class Bot extends EventEmitter {
       }
       return await getChatCompletions(this.tube, messages, this.config, this.options, 
         (content) => { // on complete
-          this.chatState = ChatState.FINISHED;
+          this.chatState = WorkState.FINISHED;
           this.emit('response', content);
         }, (content) => { // on string response
           this.emit('string-response', content);

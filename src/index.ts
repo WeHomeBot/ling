@@ -1,13 +1,15 @@
 import EventEmitter from 'node:events';
 
-import { Bot } from './bot/index';
+import { ChatBot, Bot } from './bot/index';
 import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./types";
 import { sleep, shortId } from './utils';
 
 export type { ChatConfig, ChatOptions } from "./types";
-export type { Bot } from "./bot";
+export type { ChatBot, WorkState } from "./bot";
 export type { Tube } from "./tube";
+
+export { Bot } from "./bot";
 
 export class Ling extends EventEmitter {
   protected tube: Tube;
@@ -34,11 +36,15 @@ export class Ling extends EventEmitter {
   }
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
-    const bot = new Bot(this.tube, {...this.config, ...config}, {...this.options, ...options});
+    const bot = new ChatBot(this.tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
     this.bots.push(bot);
     return bot;
+  }
+
+  addBot(bot: Bot) {
+    this.bots.push(bot);
   }
 
   setCustomParams(params: Record<string, string>) {
