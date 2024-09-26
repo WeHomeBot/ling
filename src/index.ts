@@ -71,6 +71,10 @@ export class Ling extends EventEmitter {
     this.tube.enqueue(event);
   }
 
+  get model() {
+    return this.config.model_name;
+  }
+
   get stream() {
     return this.tube.stream;
   }
