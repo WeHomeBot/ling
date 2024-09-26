@@ -5,6 +5,8 @@ import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./types";
 import { sleep, shortId } from './utils';
 
+export type { ChatConfig, ChatOptions } from "./types";
+
 export class Ling extends EventEmitter {
   private tube: Tube;
   private customParams: Record<string, string> = {};
