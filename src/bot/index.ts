@@ -93,6 +93,7 @@ export class ChatBot extends Bot {
           this.emit('inference-done', content);
         });
     } catch(ex: any) {
+      console.error(ex);
       // this.emit('error', ex.message);
       this.tube.enqueue({event: 'error', data: ex.message});
       this.tube.cancel();
