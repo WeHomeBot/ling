@@ -38,7 +38,7 @@ export class ChatBot extends Bot {
     this.customParams = {...params};
   }
 
-  addPrompt(promptTpl: string, promptData: Record<string, string> = {}) {
+  addPrompt(promptTpl: string, promptData: Record<string, any> = {}) {
     const promptText = nunjucks.renderString(promptTpl, { chatConfig: this.config, chatOptions: this.options, ...this.customParams, ...promptData, });
     this.prompts.push({ role: "system", content: promptText });
   }
