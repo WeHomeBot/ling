@@ -123,6 +123,9 @@ export async function getChatCompletions(
         }
       }
       done = true;
+      if (parser) {
+        parser.finish();
+      }
     })(),
     (async () => {
       let i = 0;

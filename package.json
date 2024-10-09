@@ -1,6 +1,6 @@
 {
   "name": "@bearbobo/ling",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "The framework for LLMs",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

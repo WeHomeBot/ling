@@ -63,7 +63,7 @@ export class JSONParser extends EventEmitter {
 
   private log(...args: any[]) {
     if (this.debug) {
-      console.log(...args, this.content.join(''));
+      console.log(...args, this.content.join(''), this.stateStack.join('->'));
     }
   }
 
@@ -143,8 +143,8 @@ export class JSONParser extends EventEmitter {
       if (this.currentState === LexerStates.Begin) {
         this.popState();
         this.pushState(LexerStates.Finish);
-        // console.log('finish', this.content.join(''));
-        this.emit('finish', JSON.parse(this.content.join('')));
+        const data = (new Function(`return ${this.content.join('')}`))();
+        this.emit('finish', data);
       } else if (this.currentState === LexerStates.Value) {
         // this.popState();
         this.pushState(LexerStates.Breaker);
@@ -375,7 +375,8 @@ export class JSONParser extends EventEmitter {
       if (lastState === LexerStates.Value) {
         this.pushState(LexerStates.Breaker);
       }
-    } else if(this.autoFix && input === ':' && this.lastState === LexerStates.Key) {
+    } 
+    else if(this.autoFix && input === ':' && currentToken[this.currentToken.length - 1] !== '\\' && this.lastState === LexerStates.Key) {
       // 默认这种情况下少了右引号，补一个
       this.content.pop();
       for(let i = this.content.length - 1; i >= 0; i--) {
@@ -385,7 +386,8 @@ export class JSONParser extends EventEmitter {
         this.content.pop();
       }
       this.trace('":');
-    } else if(this.autoFix && isQuotationMark(input) && this.lastState === LexerStates.Key) {
+    } 
+    else if(this.autoFix && isQuotationMark(input) && input !== '"' && this.lastState === LexerStates.Key) {
       // 处理 key 中的中文引号和单引号
       this.content.pop();
       return;
@@ -534,10 +536,11 @@ export class JSONParser extends EventEmitter {
     }
   }
 
-  // public finish() { // 结束解析
-  //   this.stateStack.push(LexerStates.Finish);
-  //   this.reduceState();
-  // }
+  public finish() { // 结束解析
+    if(this.currentState !== LexerStates.Finish) {
+      throw new Error(`Parser not finished: ${this.currentState} | ${this.content.join('')}`);
+    }
+  }
 
   public trace(input: string) {
     const currentState = this.currentState;
