@@ -30,6 +30,10 @@ export class Tube extends EventEmitter {
     }
   }
 
+  clearFilters() {
+    this.filters = [];
+  }
+
   setSSE(sse: boolean) {
     this._sse = sse;
   }

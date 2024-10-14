@@ -56,6 +56,14 @@ export class ChatBot extends Bot {
     this.history = messages;
   }
 
+  addFilter(filter: ((data: unknown) => boolean) | string | RegExp) {
+    this.tube.addFilter(filter);
+  }
+
+  clearFilters() {
+    this.tube.clearFilters();
+  }
+
   userMessage(message: string): ChatCompletionUserMessageParam {
     return { role: "user", content: message };
   }
