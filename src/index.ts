@@ -33,6 +33,9 @@ export class Ling extends EventEmitter {
     this._tube.on('canceled', () => {
       this.emit('canceled');
     });
+    this._tube.on('error', (error) => {
+      this.emit('error', error);
+    });
   }
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {

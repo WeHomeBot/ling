@@ -48,6 +48,9 @@ export class Tube extends EventEmitter {
             const event = `event: ${(data as any).event}\n`
             if(!isQuiet && !isFiltered) this.controller?.enqueue(event);
             this.emit('message', {id, data: event});
+            if((data as any).event === 'error') {
+              this.emit('error', {id, data});
+            }
           }
           data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
         }
