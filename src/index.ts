@@ -59,7 +59,7 @@ export class Ling extends EventEmitter {
   }
 
   protected isAllBotsFinished() {
-    return this.bots.every(bot => bot.state === 'finished');
+    return this.bots.every(bot => bot.state === 'finished' || bot.state === 'error');
   }
 
   async close() {

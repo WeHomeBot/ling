@@ -61,6 +61,7 @@ export class Tube extends EventEmitter {
         this.emit('message', {id, data});
       } catch(ex) {
         this._closed = true;
+        this.emit('error', {id, data: ex});
         // console.error('enqueue error:', ex);
       }
     }
