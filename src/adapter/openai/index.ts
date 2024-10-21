@@ -64,13 +64,13 @@ export async function getChatCompletions(
   });
 
   let content = '';
-  const buffer: string[] = [];
+  const buffer: any[] = [];
   let done = false;
 
   let parser: JSONParser | undefined;
+  const parentPath = options.response_format?.root;
 
   if (isJSONFormat) {
-    const parentPath = options.response_format?.root;
     parser = new JSONParser({
       parentPath,
       autoFix: true,
@@ -91,10 +91,10 @@ export async function getChatCompletions(
         if (choice && choice.delta) {
           if (choice.delta.content) {
             content += choice.delta.content;
-            if (parser) {
+            if (parser) { // JSON format
               parser.trace(choice.delta.content);
             } else {
-              buffer.push(...choice.delta.content);
+              buffer.push({ uri: parentPath, delta: choice.delta.content });
             }
           }
           // const filterResults = choice.content_filter_results;

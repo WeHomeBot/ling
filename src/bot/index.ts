@@ -32,7 +32,11 @@ export class ChatBot extends Bot {
   }
 
   setJSONRoot(root: string | null) {
-    this.options.response_format = { type: 'json_object', root };
+    if(!this.options.response_format) {
+      this.options.response_format = { type: 'json_object', root };
+    } else {
+      this.options.response_format.root = root;
+    }
   }
 
   setCustomParams(params: Record<string, string>) {
