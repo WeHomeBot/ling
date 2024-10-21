@@ -62,8 +62,9 @@ export async function getChatCompletions(
   });
 
   let parser: JSONParser | undefined;
+  const parentPath = options?.response_format?.root;
+
   if (isJSONFormat) {
-    const parentPath = options.response_format?.root;
     parser = new JSONParser({
       parentPath,
       autoFix: true,
@@ -148,7 +149,7 @@ export async function getChatCompletions(
               if (parser) {
                 parser.trace(chars[i]);
               } else {
-                tube.enqueue(chars[i], isQuiet);
+                tube.enqueue({ uri: parentPath, delta: chars[i] }, isQuiet);
               }
               await sleep(50);
             }
@@ -188,7 +189,7 @@ export async function getChatCompletions(
       }
     }
   } while (1);
-  if (!isJSONFormat && onStringResponse) onStringResponse(content);
+  if (!isJSONFormat && onStringResponse) onStringResponse({ uri: parentPath, delta: content });
   if (!tube.canceled && onComplete) onComplete(content, function_calls);
   return content;
 }

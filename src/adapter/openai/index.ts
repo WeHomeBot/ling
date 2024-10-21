@@ -142,6 +142,6 @@ export async function getChatCompletions(
     })(),
   ];
   await Promise.race(promises);
-  if (!isJSONFormat && onStringResponse) onStringResponse(content);
+  if (!isJSONFormat && onStringResponse) onStringResponse({ uri: parentPath, delta: content });
   return content; // inference done
 }
