@@ -66,6 +66,11 @@ export class Ling extends EventEmitter {
     while (!this.isAllBotsFinished()) {
       await sleep(100);
     }
+    await sleep(500); // 再等0.5秒，确保没有新的 bot 创建，所有 bot 都真正结束
+    if(!this.isAllBotsFinished()) {
+      this.close(); // 如果还有 bot 没有结束，则再关闭一次
+      return;
+    }
     this._tube.close();
     this.bots = [];
   }
