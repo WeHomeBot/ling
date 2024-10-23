@@ -56,6 +56,9 @@ export async function getChatCompletions(
     });
   }
 
+  const parentPath = options.response_format?.root;
+  delete options.response_format.root;
+
   const events = await client.chat.completions.create({
     messages,
     ...options,
@@ -68,8 +71,7 @@ export async function getChatCompletions(
   let done = false;
 
   let parser: JSONParser | undefined;
-  const parentPath = options.response_format?.root;
-
+  
   if (isJSONFormat) {
     parser = new JSONParser({
       parentPath,
