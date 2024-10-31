@@ -6,10 +6,9 @@ import type { ChatConfig, ChatOptions } from "./types";
 import { sleep, shortId } from './utils';
 
 export type { ChatConfig, ChatOptions } from "./types";
-export type { ChatBot } from "./bot";
 export type { Tube } from "./tube";
 
-export { Bot, WorkState } from "./bot";
+export { Bot, ChatBot, WorkState } from "./bot";
 
 export class Ling extends EventEmitter {
   protected _tube: Tube;
