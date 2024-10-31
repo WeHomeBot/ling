@@ -26,9 +26,13 @@ export class ChatBot extends Bot {
   private history: ChatCompletionMessageParam[] = [];
   private customParams: Record<string, string> = {};
   private chatState = WorkState.INIT;
+  private config: ChatConfig;
+  private options: ChatOptions;
 
-  constructor(private tube: Tube, private config: ChatConfig, private options: ChatOptions = {}) {
+  constructor(private tube: Tube, config: ChatConfig, options: ChatOptions = {}) {
     super();
+    this.config = { ...config };
+    this.options = { ...options };
   }
 
   setJSONRoot(root: string | null) {
