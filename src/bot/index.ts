@@ -119,6 +119,8 @@ export class ChatBot extends Bot {
   }
 
   finish() {
+    this.emit('inference-done', 'null');
+    this.emit('response', 'null');
     this.chatState = WorkState.FINISHED;
   }
 
