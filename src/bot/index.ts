@@ -118,6 +118,10 @@ export class ChatBot extends Bot {
     }
   }
 
+  finish() {
+    this.chatState = WorkState.FINISHED;
+  }
+
   get state() {
     return this.chatState;
   }
