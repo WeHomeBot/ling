@@ -112,7 +112,7 @@ export class ChatBot extends Bot {
     } catch(ex: any) {
       console.error(ex);
       this.chatState = WorkState.ERROR;
-      // this.emit('error', ex.message);
+      this.emit('error', ex.message);
       this.tube.enqueue({event: 'error', data: ex.message});
       // this.tube.cancel();
     }
