@@ -84,10 +84,14 @@ export class ChatBot extends Bot {
   async chat(message: string) {
     try {
       this.chatState = WorkState.WORKING;
-      const prompts = this.prompts.length > 0 ? [...this.prompts] : [{
-        role: 'system',
-        content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
-      }];
+      const isJSONFormat = this.options.response_format?.type === 'json_object';
+      const prompts = this.prompts.length > 0 ? [...this.prompts] : [];
+      if(isJSONFormat) {
+        prompts.push({
+          role: 'system',
+          content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
+        });
+      }
       const messages = [...prompts, ...this.history, { role: "user", content: message }];
       if(this.config.model_name.startsWith('coze:')) {
         return await getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
