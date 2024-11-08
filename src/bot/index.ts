@@ -86,7 +86,7 @@ export class ChatBot extends Bot {
       this.chatState = WorkState.WORKING;
       const isJSONFormat = this.options.response_format?.type === 'json_object';
       const prompts = this.prompts.length > 0 ? [...this.prompts] : [];
-      if(isJSONFormat) {
+      if(this.prompts.length === 0 && isJSONFormat) {
         prompts.push({
           role: 'system',
           content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
