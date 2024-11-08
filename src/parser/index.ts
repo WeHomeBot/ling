@@ -546,8 +546,9 @@ export class JSONParser extends EventEmitter {
     const currentState = this.currentState;
     this.log('trace', JSON.stringify(input), currentState, JSON.stringify(this.currentToken));
 
-    if (input.length > 1) {
-      [...input].forEach((char) => {
+    const inputArray = [...input];
+    if (inputArray.length > 1) {
+      inputArray.forEach((char) => {
         this.trace(char);
       });
       return;

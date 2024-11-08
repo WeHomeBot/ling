@@ -588,6 +588,21 @@ rbo"bo,
     parser.trace(input);
   });
 
+  test('JSON string with emoji', done => {
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name” : "🐻"
+    }`;
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": "🐻"});
+      done();
+    });
+    parser.trace(input);
+  });
+
   test('JSON with other text', done => {
     // 当作漏掉引号处理
     const parser = new JSONParser({
