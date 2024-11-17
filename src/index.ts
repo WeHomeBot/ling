@@ -32,15 +32,18 @@ export class Ling extends EventEmitter {
     this._tube.on('canceled', () => {
       this.emit('canceled');
     });
-    this._tube.on('error', (error) => {
-      this.emit('error', error);
-    });
+    // this._tube.on('error', (error) => {
+    //   this.emit('error', error);
+    // });
   }
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
     const bot = new ChatBot(this._tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
+    bot.addListener('error', (error) => {
+      this.emit('error', error);
+    });
     this.bots.push(bot);
     return bot;
   }
