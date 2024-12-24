@@ -27,7 +27,7 @@ export async function getChatCompletions(
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   if (options.response_format) { // 防止原始引用对象里的值被删除
-    options.response_format = {type: options.response_format.type};
+    options.response_format = {type: options.response_format.type, root: options.response_format.root};
   }
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
 
