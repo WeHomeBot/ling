@@ -35,6 +35,14 @@ export class ChatBot extends Bot {
     this.options = { ...options };
   }
 
+  isJSONFormat() {
+    return this.options.response_format?.type === 'json_object';
+  }
+
+  get root() {
+    return this.options.response_format?.root;
+  }
+
   setJSONRoot(root: string | null) {
     if(!this.options.response_format) {
       this.options.response_format = { type: 'json_object', root };
@@ -84,7 +92,7 @@ export class ChatBot extends Bot {
   async chat(message: string) {
     try {
       this.chatState = WorkState.WORKING;
-      const isJSONFormat = this.options.response_format?.type === 'json_object';
+      const isJSONFormat = this.isJSONFormat();
       const prompts = this.prompts.length > 0 ? [...this.prompts] : [];
       if(this.prompts.length === 0 && isJSONFormat) {
         prompts.push({

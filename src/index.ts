@@ -1,4 +1,5 @@
 import EventEmitter from 'node:events';
+import merge from 'lodash.merge';
 
 import { ChatBot, Bot } from './bot/index';
 import { Tube } from './tube';
@@ -15,6 +16,7 @@ export class Ling extends EventEmitter {
   protected customParams: Record<string, string> = {};
   protected bots: Bot[] = [];
   protected session_id = shortId();
+  private _promise: Promise<any> | null = null;
 
   constructor(protected config: ChatConfig, protected options: ChatOptions = {}) {
     super();
@@ -37,12 +39,38 @@ export class Ling extends EventEmitter {
     // });
   }
 
+  get promise() {
+    if(!this._promise) {
+      this._promise = new Promise((resolve, reject) => {
+        let result: any = {};
+        this.on('inference-done', (content, bot) => {
+          let output = bot.isJSONFormat() ? JSON.parse(content) : content;
+          if(bot.root != null) {
+            result[bot.root] = output;
+          } else {
+            result = merge(result, output);
+          }
+        });
+        this.once('finished', () => {
+          resolve(result);
+        });
+        this.once('error', (error, bot) => {
+          reject(error);
+        });
+      });
+    }
+    return this._promise;
+  }
+
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
     const bot = new ChatBot(this._tube, {...this.config, ...config}, {...this.options, ...options});
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
     bot.addListener('error', (error) => {
-      this.emit('error', error);
+      this.emit('error', error, bot);
+    });
+    bot.addListener('inference-done', (content) => {
+      this.emit('inference-done', content, bot);
     });
     this.bots.push(bot);
     return bot;
