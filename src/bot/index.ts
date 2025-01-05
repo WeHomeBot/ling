@@ -13,6 +13,7 @@ type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatComplet
 export enum WorkState {
   INIT = 'init',
   WORKING = 'chatting',
+  INFERENCE_DONE = 'inference-done',
   FINISHED = 'finished',
   ERROR = 'error',
 }
@@ -108,7 +109,8 @@ export class ChatBot extends Bot {
             this.emit('response', content);
           }, (content) => { // on string response
             this.emit('string-response', content);
-          }).then((content) => {
+          }).then((content) => { // on inference done
+            this.chatState = WorkState.INFERENCE_DONE;
             this.emit('inference-done', content);
           });
       }
@@ -118,7 +120,8 @@ export class ChatBot extends Bot {
           this.emit('response', content);
         }, (content) => { // on string response
           this.emit('string-response', content);
-        }).then((content) => {
+        }).then((content) => { // on inference done
+          this.chatState = WorkState.INFERENCE_DONE;
           this.emit('inference-done', content);
         });
     } catch(ex: any) {

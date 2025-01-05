@@ -1,7 +1,7 @@
 import EventEmitter from 'node:events';
 import merge from 'lodash.merge';
 
-import { ChatBot, Bot } from './bot/index';
+import { ChatBot, Bot, WorkState } from './bot/index';
 import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./types";
 import { sleep, shortId } from './utils';
@@ -50,10 +50,20 @@ export class Ling extends EventEmitter {
           } else {
             result = merge(result, output);
           }
+          setTimeout(() => {
+            // 没有新的bot且其他bot的状态都都推理结束
+            if(this.bots.every(
+              (_bot: Bot) => _bot.state === WorkState.INFERENCE_DONE 
+              || _bot.state === WorkState.FINISHED 
+              || _bot.state === WorkState.ERROR || bot === _bot
+            )) {
+              resolve(result);
+            }
+          });
         });
-        this.once('finished', () => {
-          resolve(result);
-        });
+        // this.once('finished', () => {
+        //   resolve(result);
+        // });
         this.once('error', (error, bot) => {
           reject(error);
         });
