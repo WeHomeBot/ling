@@ -17,7 +17,7 @@ export class Ling extends EventEmitter {
   protected bots: Bot[] = [];
   protected session_id = shortId();
   private _promise: Promise<any> | null = null;
-
+  private _tasks: Promise<any>[] = [];
   constructor(protected config: ChatConfig, protected options: ChatOptions = {}) {
     super();
     if(config.session_id) {
@@ -39,6 +39,10 @@ export class Ling extends EventEmitter {
     // });
   }
 
+  handleTask(task: () => Promise<any>) {
+    this._tasks.push(task());
+  }
+
   get promise() {
     if(!this._promise) {
       this._promise = new Promise((resolve, reject) => {
@@ -50,13 +54,14 @@ export class Ling extends EventEmitter {
           } else {
             result = merge(result, output);
           }
-          setTimeout(() => {
+          setTimeout(async () => {
             // 没有新的bot且其他bot的状态都都推理结束
             if(this.bots.every(
               (_bot: Bot) => _bot.state === WorkState.INFERENCE_DONE 
               || _bot.state === WorkState.FINISHED 
               || _bot.state === WorkState.ERROR || bot === _bot
             )) {
+              await Promise.all(this._tasks);
               resolve(result);
             }
           });
@@ -111,16 +116,16 @@ export class Ling extends EventEmitter {
       this.close(); // 如果还有 bot 没有结束，则再关闭一次
       return;
     }
+    await Promise.all(this._tasks); // 看还有没有任务没有完成
     this._tube.close();
     this.bots = [];
+    this._tasks = [];
   }
 
   async cancel() {
-    while (!this.isAllBotsFinished()) {
-      await sleep(100);
-    }
     this._tube.cancel();
     this.bots = [];
+    this._tasks = [];
   }
 
   sendEvent(event: any) {
