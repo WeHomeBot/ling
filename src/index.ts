@@ -40,7 +40,9 @@ export class Ling extends EventEmitter {
   }
 
   handleTask(task: () => Promise<any>) {
-    this._tasks.push(task());
+    return new Promise((resolve, reject) => {
+      this._tasks.push(task().then(resolve).catch(reject));
+    });
   }
 
   get promise() {
