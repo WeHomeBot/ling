@@ -109,6 +109,8 @@ export class ChatBot extends Bot {
             this.emit('response', content);
           }, (content) => { // on string response
             this.emit('string-response', content);
+          }, (content) => { // on object response
+            this.emit('object-response', content);
           }).then((content) => { // on inference done
             this.chatState = WorkState.INFERENCE_DONE;
             this.emit('inference-done', content);
@@ -120,6 +122,8 @@ export class ChatBot extends Bot {
           this.emit('response', content);
         }, (content) => { // on string response
           this.emit('string-response', content);
+        }, (content) => { // on object response
+          this.emit('object-response', content);
         }).then((content) => { // on inference done
           this.chatState = WorkState.INFERENCE_DONE;
           this.emit('inference-done', content);

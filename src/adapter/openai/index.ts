@@ -23,7 +23,8 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions,
   onComplete?: (content: string) => void,
-  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void
+  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
+  onObjectResponse?: (content: {uri: string|null, delta: any}) => void
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   if (options.response_format) { // 防止原始引用对象里的值被删除
@@ -85,6 +86,9 @@ export async function getChatCompletions(
     });
     parser.on('string-resolve', (content) => {
       if (onStringResponse) onStringResponse(content);
+    });
+    parser.on('object-resolve', (content) => {
+      if (onObjectResponse) onObjectResponse(content);
     });
   }
 

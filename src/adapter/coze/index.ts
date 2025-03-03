@@ -9,7 +9,8 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions & {custom_variables?: Record<string, string>},
   onComplete?: (content: string, function_calls?: any[]) => void,
-  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void
+  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
+  onObjectResponse?: (content: {uri: string|null, delta: any}) => void
 ) {
   const bot_id = config.model_name.split(':')[1]; // coze:bot_id
   const { api_key, endpoint } = config as ChatConfig;
@@ -74,6 +75,9 @@ export async function getChatCompletions(
     });
     parser.on('string-resolve', (content) => {
       if (onStringResponse) onStringResponse(content);
+    });
+    parser.on('object-resolve', (content) => {
+      if (onObjectResponse) onObjectResponse(content);
     });
   }
 
