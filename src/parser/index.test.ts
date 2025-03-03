@@ -80,6 +80,24 @@ describe('JSONParser', () => {
     parser.trace(JSON.stringify(_data));
   })
 
+  test('sample JSON object and array', done => {
+    const _data = { "a": [1, 2, 3], "b": { "c": 4, "d": 5 } };
+    parser.on('object-resolve', ({uri, delta}) => {
+      console.log('object-resolve', uri, delta);
+      if(uri === 'a') {
+        expect(delta).toEqual([1, 2, 3]);
+      }
+      if(uri === 'b') {
+        expect(delta).toEqual({c: 4, d: 5});
+      }
+    })
+    parser.on('finish', (data) => {
+      expect(data).toEqual(_data);
+      done();
+    });
+    parser.trace(JSON.stringify(_data));
+  })
+
   test('complex JSON string', done => {
     const _arr: any[] = [];
     const _data = { "b": { "a\"": "你好，我是波波熊。" }, "c": 1024, "d": true, "e": [1, 2, " 灵", true, false, null, [32], { 'g': 'h' }], "f": null };

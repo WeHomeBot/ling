@@ -21,6 +21,7 @@ export interface ChatConfig {
   api_version?: string;
   session_id?: string;
   max_tokens?: number;
+  sse?: boolean;
 }
 
 export interface ChatOptions {

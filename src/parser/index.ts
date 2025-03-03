@@ -38,6 +38,7 @@ export class JSONParser extends EventEmitter {
   private currentToken = '';
   private keyPath: string[] = [];
   private arrayIndexStack: any[] = [];
+  private objectTokenIndexStack: number[] = [];  
   private autoFix = false;
   private debug = false;
   private lastPopStateToken: { state: LexerStates, token: string } | null = null;
@@ -73,6 +74,9 @@ export class JSONParser extends EventEmitter {
     if (state === LexerStates.Array) {
       this.arrayIndexStack.push({ index: 0 });
     }
+    if (state === LexerStates.Object || state === LexerStates.Array) {
+      this.objectTokenIndexStack.push(this.content.length - 1);
+    }
   }
 
   private popState() {
@@ -85,6 +89,16 @@ export class JSONParser extends EventEmitter {
     }
     if (state === LexerStates.Array) {
       this.arrayIndexStack.pop();
+    }
+    if (state === LexerStates.Object || state === LexerStates.Array) {
+      const idx = this.objectTokenIndexStack.pop();
+      if(idx != null && idx >= 0) {
+        const obj = JSON.parse(this.content.slice(idx).join(''));
+        this.emit('object-resolve', {
+          uri: this.keyPath.join('/'),
+          delta: obj,
+        });
+      }
     }
     return state;
   }

@@ -25,6 +25,9 @@ export class Ling extends EventEmitter {
       delete config.session_id;
     }
     this._tube = new Tube(this.session_id);
+    if(config.sse) {
+      this._tube.setSSE(true);
+    }
     this._tube.on('message', (message) => {
       this.emit('message', message);
     });
