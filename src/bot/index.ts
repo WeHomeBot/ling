@@ -6,7 +6,7 @@ import { getChatCompletions } from "../adapter/openai";
 import { getChatCompletions as getCozeChatCompletions } from "../adapter/coze";
 
 import type { ChatConfig, ChatOptions } from "../types";
-import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from "openai/resources/index";
+import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPart } from "openai/resources/index";
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
@@ -90,7 +90,7 @@ export class ChatBot extends Bot {
     return { role: "assistant", content: message };
   }
 
-  async chat(message: string) {
+  async chat(message: string | ChatCompletionContentPart[]) {
     try {
       this.chatState = WorkState.WORKING;
       const isJSONFormat = this.isJSONFormat();
