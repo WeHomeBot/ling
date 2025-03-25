@@ -20,14 +20,8 @@ export class Tube extends EventEmitter {
     });
   }
 
-  addFilter(filter: ((data: unknown) => boolean) | string | RegExp) {
-    if(typeof filter === 'string') {
-      this.filters.push((data: any) => data.uri === filter);
-    } else if(filter instanceof RegExp) {
-      this.filters.push((data: any) => filter.test(data.uri));
-    } else {
-      this.filters.push(filter);
-    }
+  addFilter(filter: (data: any) => boolean) {
+    this.filters.push(filter);
   }
 
   clearFilters() {

@@ -74,8 +74,14 @@ export class ChatBot extends Bot {
     this.history = messages;
   }
 
-  addFilter(filter: ((data: unknown) => boolean) | string | RegExp) {
-    this.tube.addFilter(filter);
+  addFilter(filter: ((data: any) => boolean) | string | RegExp) {
+    if(typeof filter === 'string') {
+      this.tube.addFilter((data: any) => data.uri === `${this.root}/${filter}`);
+    } else if(filter instanceof RegExp) {
+      this.tube.addFilter((data: any) => filter.test(data.uri));
+    } else {
+      this.tube.addFilter(filter);
+    }
   }
 
   clearFilters() {
