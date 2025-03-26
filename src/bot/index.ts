@@ -92,9 +92,10 @@ export class ChatBot extends Bot {
       // 如果是对象，那么应当过滤掉对象中值为false的键，或者保留为true的键
       const _filter = filter as FilterMap;
       const filterFun = ({uri}: any) => {
+        if (uri == null) return false;
         let isTrueFilter = false;
         for(const key in _filter) {
-          if(uri === key) {
+          if(uri === `${this.root}/${key}`) {
             return !_filter[key];
           }
           if(_filter[key] && !isTrueFilter) {
