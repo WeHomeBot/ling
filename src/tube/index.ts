@@ -8,7 +8,7 @@ export class Tube extends EventEmitter {
   private _closed: boolean = false;
   private _sse: boolean = false;
   private messageIndex = 0;
-  private filters: ((data: unknown) => boolean)[] = [];
+  private filters: Record<string, ((data: unknown) => boolean)[]> = {};
 
   constructor(private session_id: string = shortId()) {
     super();
@@ -20,20 +20,20 @@ export class Tube extends EventEmitter {
     });
   }
 
-  addFilter(filter: (data: any) => boolean) {
-    this.filters.push(filter);
+  addFilter(bot_id: string, filter: (data: any) => boolean) {
+    this.filters[bot_id].push(filter);
   }
 
-  clearFilters() {
-    this.filters = [];
+  clearFilters(bot_id: string) {
+    this.filters[bot_id] = [];
   }
 
   setSSE(sse: boolean) {
     this._sse = sse;
   }
 
-  enqueue(data: unknown, isQuiet: boolean = false) {
-    const isFiltered = this.filters.some(filter => filter(data));
+  enqueue(data: unknown, isQuiet: boolean = false, bot_id?: string) {
+    const isFiltered = bot_id && this.filters[bot_id]?.some(filter => filter(data));
     const id = `${this.session_id}:${this.messageIndex++}`;
     if (!this._closed) {
       try {

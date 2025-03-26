@@ -33,4 +33,5 @@ export interface ChatOptions {
   response_format?: any;
   max_tokens?: number;
   quiet?: boolean;
+  bot_id?: string;
 }

@@ -8,6 +8,8 @@ import { getChatCompletions as getCozeChatCompletions } from "../adapter/coze";
 import type { ChatConfig, ChatOptions } from "../types";
 import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPart } from "openai/resources/index";
 
+import { shortId } from '../utils';
+
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
 interface FilterMap {
@@ -33,11 +35,13 @@ export class ChatBot extends Bot {
   private chatState = WorkState.INIT;
   private config: ChatConfig;
   private options: ChatOptions;
+  private id: string;
 
   constructor(private tube: Tube, config: ChatConfig, options: ChatOptions = {}) {
     super();
+    this.id = shortId();
     this.config = { ...config };
-    this.options = { ...options };
+    this.options = { ...options, bot_id: this.id };
   }
 
   isJSONFormat() {
@@ -81,13 +85,13 @@ export class ChatBot extends Bot {
   addFilter(filter: ((data: any) => boolean) | string | RegExp | FilterMap) {
     if(typeof filter === 'string') {
       // 如果是 string，则排除掉该字段
-      this.tube.addFilter((data: any) => data.uri === `${this.root}/${filter}`);
+      this.tube.addFilter(this.id, (data: any) => data.uri === `${this.root}/${filter}`);
     } else if(filter instanceof RegExp) {
       // 如果是正则表达式，则过滤掉匹配该正则表达式的字段
-      this.tube.addFilter((data: any) => filter.test(data.uri));
+      this.tube.addFilter(this.id, (data: any) => filter.test(data.uri));
     } else if(typeof filter === 'function') {
       // 如果是函数，那么应当过滤掉函数返回值为false的数据，保留返回为true的
-      this.tube.addFilter((data: any) => !filter(data));
+      this.tube.addFilter(this.id, (data: any) => !filter(data));
     } else if(typeof filter === 'object') {
       // 如果是对象，那么应当过滤掉对象中值为false的键，或者保留为true的键
       const _filter = filter as FilterMap;
@@ -104,12 +108,12 @@ export class ChatBot extends Bot {
         }
         return isTrueFilter;
       } 
-      this.tube.addFilter(filterFun);
+      this.tube.addFilter(this.id, filterFun);
     }
   }
 
   clearFilters() {
-    this.tube.clearFilters();
+    this.tube.clearFilters(this.id);
   }
 
   userMessage(message: string): ChatCompletionUserMessageParam {

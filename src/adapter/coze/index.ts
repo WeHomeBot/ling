@@ -12,11 +12,13 @@ export async function getChatCompletions(
   onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
   onObjectResponse?: (content: {uri: string|null, delta: any}) => void
 ) {
-  const bot_id = config.model_name.replace(/^coze:/, '');
+  const cozeBotId = config.model_name.replace(/^coze:/, '');
   const { api_key, endpoint } = config as ChatConfig;
 
   const isQuiet: boolean = !!options?.quiet;
+  const bot_id = options?.bot_id;
   delete options?.quiet;
+  delete options?.bot_id;
 
   const isJSONFormat = options?.response_format?.type === 'json_object';
 
@@ -71,7 +73,7 @@ export async function getChatCompletions(
       autoFix: true,
     });
     parser.on('data', (data) => {
-      tube.enqueue(data, isQuiet);
+      tube.enqueue(data, isQuiet, bot_id);
     });
     parser.on('string-resolve', (content) => {
       if (onStringResponse) onStringResponse(content);
@@ -82,7 +84,7 @@ export async function getChatCompletions(
   }
 
   const _payload = {
-    bot_id,
+    bot_id: cozeBotId,
     user: 'bearbobo',
     query: query.content,
     chat_history,
@@ -135,7 +137,7 @@ export async function getChatCompletions(
         buffer = '';
         if (data.error_information) {
           // console.error(data.error_information.err_msg);
-          tube.enqueue({event: 'error', data});
+          tube.enqueue({event: 'error', data}, isQuiet, bot_id);
           tube.cancel();
           break;
         }
@@ -153,12 +155,12 @@ export async function getChatCompletions(
               if (parser) {
                 parser.trace(chars[i]);
               } else {
-                tube.enqueue({ uri: parentPath, delta: chars[i] }, isQuiet);
+                tube.enqueue({ uri: parentPath, delta: chars[i] }, isQuiet, bot_id);
               }
               await sleep(50);
             }
             if(functionCalling) { // function_call 偶尔未返回结果，原因未知
-              tube.enqueue({event: 'tool_response', data: null}, isQuiet);
+              tube.enqueue({event: 'tool_response', data: null}, isQuiet, bot_id);
               functionCalling = false;
             }
           } else if (message.type === 'function_call') {
@@ -171,7 +173,7 @@ export async function getChatCompletions(
               function_call: func,
             });
             funcName = func.name;
-            tube.enqueue({event: 'function_call', data: func}, isQuiet);
+            tube.enqueue({event: 'function_call', data: func}, isQuiet, bot_id);
           } else if (message.type === 'tool_response') {
             functionCalling = false;
             function_calls.push({
@@ -179,14 +181,14 @@ export async function getChatCompletions(
               name: funcName,
               content: message.content,
             });
-            tube.enqueue({event: 'tool_response', data: message.content}, isQuiet);
+            tube.enqueue({event: 'tool_response', data: message.content}, isQuiet, bot_id);
           }
         }
       } else {
         try {
           const data = JSON.parse(event);
           if (data.code) {
-            tube.enqueue({event: 'error', data});
+            tube.enqueue({event: 'error', data}, isQuiet, bot_id);
             tube.cancel();
           }
         } catch(ex) {}
