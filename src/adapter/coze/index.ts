@@ -12,7 +12,7 @@ export async function getChatCompletions(
   onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
   onObjectResponse?: (content: {uri: string|null, delta: any}) => void
 ) {
-  const bot_id = config.model_name.split(':')[1]; // coze:bot_id
+  const bot_id = config.model_name.replace(/^coze:/, '');
   const { api_key, endpoint } = config as ChatConfig;
 
   const isQuiet: boolean = !!options?.quiet;

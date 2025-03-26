@@ -10,6 +10,10 @@ import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessagePa
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
+interface FilterMap {
+  [key: string]: boolean;
+}
+
 export enum WorkState {
   INIT = 'init',
   WORKING = 'chatting',
@@ -74,13 +78,32 @@ export class ChatBot extends Bot {
     this.history = messages;
   }
 
-  addFilter(filter: ((data: any) => boolean) | string | RegExp) {
+  addFilter(filter: ((data: any) => boolean) | string | RegExp | FilterMap) {
     if(typeof filter === 'string') {
+      // 如果是 string，则排除掉该字段
       this.tube.addFilter((data: any) => data.uri === `${this.root}/${filter}`);
     } else if(filter instanceof RegExp) {
+      // 如果是正则表达式，则过滤掉匹配该正则表达式的字段
       this.tube.addFilter((data: any) => filter.test(data.uri));
-    } else {
-      this.tube.addFilter(filter);
+    } else if(typeof filter === 'function') {
+      // 如果是函数，那么应当过滤掉函数返回值为false的数据，保留返回为true的
+      this.tube.addFilter((data: any) => !filter(data));
+    } else if(typeof filter === 'object') {
+      // 如果是对象，那么应当过滤掉对象中值为false的键，或者保留为true的键
+      const _filter = filter as FilterMap;
+      const filterFun = ({uri}: any) => {
+        let isTrueFilter = false;
+        for(const key in _filter) {
+          if(uri === key) {
+            return !_filter[key];
+          }
+          if(_filter[key] && !isTrueFilter) {
+            isTrueFilter = true;
+          }
+        }
+        return isTrueFilter;
+      } 
+      this.tube.addFilter(filterFun);
     }
   }
 
@@ -108,7 +131,7 @@ export class ChatBot extends Bot {
         });
       }
       const messages = [...prompts, ...this.history, { role: "user", content: message }];
-      if(this.config.model_name.startsWith('coze:')) {
+      if(this.config.endpoint.startsWith('https://api.coze.cn')) {
         return await getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
           (content) => { // on complete
             this.chatState = WorkState.FINISHED;
