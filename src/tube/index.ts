@@ -21,6 +21,7 @@ export class Tube extends EventEmitter {
   }
 
   addFilter(bot_id: string, filter: (data: any) => boolean) {
+    this.filters[bot_id] = this.filters[bot_id] || [];
     this.filters[bot_id].push(filter);
   }
 
