@@ -1,3 +1,4 @@
+import { parse } from 'path';
 import { JSONParser } from './index';
 
 describe('JSONParser', () => {
@@ -616,6 +617,27 @@ rbo"bo,
     }`;
     parser.on('finish', (data) => {
       expect(data).toEqual({"name": "🐻"});
+      done();
+    });
+    parser.trace(input);
+  });
+
+  test('JSON string with escape character', done => {
+    const parser = new JSONParser({
+      debug: false,
+      autoFix: true,
+    });
+    const input = `{
+      "name” : "bear\\"bobo\\ntest"
+    }`;
+    parser.on('data', (data) => {
+      console.log('escape character', data);
+    });
+    parser.on('string-resolve', (data) => {
+      console.log('string-resolve', data);
+    });
+    parser.on('finish', (data) => {
+      expect(data).toEqual({"name": "bear\"bobo\ntest"});
       done();
     });
     parser.trace(input);

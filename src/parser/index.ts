@@ -118,7 +118,7 @@ export class JSONParser extends EventEmitter {
       } else if (this.currentState === LexerStates.Value) {
         this.emit('string-resolve', {
           uri: this.keyPath.join('/'),
-          delta: str,
+          delta: JSON.parse(`["${str}"]`)[0],
         });
         // this.popState();
       }
@@ -406,13 +406,33 @@ export class JSONParser extends EventEmitter {
       this.content.pop();
       return;
     } else {
-      this.currentToken += input;
       if (this.lastState === LexerStates.Value) {
-        this.emit('data', {
-          uri: this.keyPath.join('/'),
-          delta: input,
-        });
+        if (input !== '\\' && this.currentToken[this.currentToken.length - 1] !== '\\') {
+          // 如果不是反斜杠，且不构成转义符，则发送出去
+          this.emit('data', {
+            uri: this.keyPath.join('/'),
+            delta: input,
+          });
+        } else if(this.currentToken[this.currentToken.length - 1] === '\\') {
+          // 如果不是反斜杠，且可能构成转义，需要判断前面的\\的奇偶性 
+          let count = 0;
+          for (let i = this.currentToken.length - 1; i >= 0; i--) {
+            if(this.currentToken[i] === '\\') {
+              count++;
+            } else {
+              break;
+            }
+          }
+          if(count % 2) {
+            // 奇数个反斜杠，构成转义
+            this.emit('data', {
+              uri: this.keyPath.join('/'),
+              delta: JSON.parse(`["\\${input}"]`)[0],
+            });
+          }
+        }
       }
+      this.currentToken += input;
     }
   }
 
