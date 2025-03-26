@@ -378,16 +378,7 @@ export class JSONParser extends EventEmitter {
 
   private traceString(input: string) {
     if (input === '\n') {
-      // this.traceError(input);
-      this.currentToken += input;
-      this.content.pop();
-      this.content.push('\\n');
-      if (this.lastState === LexerStates.Value) {
-        this.emit('data', {
-          uri: this.keyPath.join('/'),
-          delta: input,
-        });
-      }
+      this.traceError(input);
       return;
     }
     const currentToken = this.currentToken.replace(/\\\\/g, '');  // 去掉转义的反斜杠
