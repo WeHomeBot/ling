@@ -92,6 +92,7 @@ export class HTMLParser extends Writable {
 	private pos: number;
 	private tagType: TAG_TYPE;
 	private pathStack: string[]; // 用于跟踪XML路径的栈
+	private pathStackCount: Record<string, number> = {}; // 路径栈的长度
 
 	constructor(options?: {parentPath?: string | null}) {
 		super();
@@ -99,14 +100,20 @@ export class HTMLParser extends Writable {
 		this.buffer = '';
 		this.pos = 0;
 		this.tagType = TAG_TYPE.NONE;
-		this.pathStack = []; // 初始化路径栈
+		this.pathStack = ['$$root']; // 初始化路径栈
 		if(options?.parentPath) {
-			this.pathStack.push(options.parentPath);
+			const parentPaths = options.parentPath.split('\/');
+			this.pathStack.push(...parentPaths.map(p => p.trim() + '[1]'));
 		}
 	}
 
 	trace(input: string) {
 		this.write(input);
+	}
+
+	end(args?: any) {
+		this.emit('end'); // 触发end事件
+		return super.end(args);
 	}
 
 	_write(chunk: any, encoding: BufferEncoding, done: (error?: Error | null) => void): void {
@@ -184,7 +191,9 @@ export class HTMLParser extends Writable {
 		const { name, attributes } = this._parseTagString(tag);
 
 		if ((this.tagType & TAG_TYPE.OPENING) === TAG_TYPE.OPENING) {
-      this.pathStack.push(name);
+			const parent = this._getCurrentXPath();
+			this.pathStackCount[parent] = 1 + (this.pathStackCount[parent] || 0);
+      this.pathStack.push(`${name}[${this.pathStackCount[parent]}]`);
 			// 对于开标签，先发出事件，然后将标签名添加到路径栈中
 			this.emit(EVENTS.OPEN_TAG, this._getCurrentXPath(), name, attributes);
 		}
@@ -249,7 +258,7 @@ export class HTMLParser extends Writable {
 	private _onDOCTYPEEnd(): void {
 		const doctype = this._endRecording();
     if (doctype.toUpperCase().startsWith('OCTYPE')) {
-		  this.emit(EVENTS.DOCTYPE, doctype.slice(7));
+		  this.emit(EVENTS.DOCTYPE, doctype.slice(6).trim());
     }
 		this.state = STATE.TEXT;
 	}
@@ -276,6 +285,6 @@ export class HTMLParser extends Writable {
 	 * @return {string} 当前XML路径，格式为/root/child
 	 */
 	private _getCurrentXPath(): string {
-		return '/' + this.pathStack.join('/');
+		return this.pathStack.join('/').slice(6); // 排除$$root
 	}
 }
