@@ -1,5 +1,4 @@
-import { parse } from 'path';
-import { JSONParser } from './index';
+import { JSONParser } from './json.parser';
 
 describe('JSONParser', () => {
   let parser: JSONParser;

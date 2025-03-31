@@ -5,7 +5,7 @@ import "@azure/openai/types";
 
 import { ChatConfig, ChatOptions } from '../../types';
 import { Tube } from '../../tube';
-import { JSONParser } from '../../parser';
+import { JSONParser, HTMLParser, HTMLParserEvents } from '../../parser';
 import { sleep } from '../../utils';
 
 import "dotenv/config";
@@ -23,8 +23,8 @@ export async function getChatCompletions(
   config: ChatConfig,
   options?: ChatOptions,
   onComplete?: (content: string) => void,
-  onStringResponse?: (content: {uri: string|null, delta: string} | string) => void,
-  onObjectResponse?: (content: {uri: string|null, delta: any}) => void
+  onStringResponse?: (content: any) => void,
+  onObjectResponse?: (content: any) => void
 ) {
   options = {...DEFAULT_CHAT_OPTIONS, ...options};
   if (options.response_format) { // 防止原始引用对象里的值被删除
@@ -38,6 +38,7 @@ export async function getChatCompletions(
   delete options.bot_id;
 
   const isJSONFormat = options.response_format?.type === 'json_object';
+  const isHTMLFormat = options.response_format?.type === 'html';
 
   let client: OpenAI | AzureOpenAI;
   let model = '';
@@ -64,6 +65,9 @@ export async function getChatCompletions(
 
   const parentPath = options.response_format?.root;
   delete options.response_format.root;
+  if(isHTMLFormat) {
+    options.response_format = {type: 'text'};
+  }
 
   const events = await client.chat.completions.create({
     messages,
@@ -76,7 +80,7 @@ export async function getChatCompletions(
   const buffer: any[] = [];
   let done = false;
 
-  let parser: JSONParser | undefined;
+  let parser: JSONParser | HTMLParser | undefined;
   
   if (isJSONFormat) {
     parser = new JSONParser({
@@ -91,6 +95,26 @@ export async function getChatCompletions(
     });
     parser.on('object-resolve', (content) => {
       if (onObjectResponse) onObjectResponse(content);
+    });
+  } else if(isHTMLFormat) {
+    parser = new HTMLParser({
+      parentPath,
+    });
+    parser.on(HTMLParserEvents.OPEN_TAG, (xpath, name, attributes) => {
+      tube.enqueue({ xpath, type:'open_tag', name, attributes }, isQuiet, bot_id);
+    });
+    parser.on(HTMLParserEvents.CLOSE_TAG, (xpath, name) => {
+      tube.enqueue({ xpath, type:'close_tag', name }, isQuiet, bot_id);
+      if (onObjectResponse) onObjectResponse({xpath, name});
+    });
+    parser.on(HTMLParserEvents.TEXT_DELTA, (xpath, text) => {
+      tube.enqueue({ xpath, type:'text_delta', delta: text }, isQuiet, bot_id);
+    });
+    parser.on(HTMLParserEvents.TEXT, (xpath, text) => {
+      if(xpath.endsWith('script') || xpath.endsWith('style')) {
+        tube.enqueue({ xpath, type:'text_delta', delta: text }, isQuiet, bot_id);
+      }
+      if (onStringResponse) onStringResponse({xpath, text});
     });
   }
 
@@ -134,9 +158,9 @@ export async function getChatCompletions(
         }
       }
       done = true;
-      if (parser) {
-        parser.finish();
-      }
+      // if (parser) {
+      //   parser.finish();
+      // }
     })(),
     (async () => {
       let i = 0;
