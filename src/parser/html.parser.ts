@@ -101,10 +101,16 @@ export class HTMLParser extends Writable {
 		this.pos = 0;
 		this.tagType = TAG_TYPE.NONE;
 		this.pathStack = ['$$root']; // 初始化路径栈
-		if(options?.parentPath) {
-			const parentPaths = options.parentPath.split('\/');
-			this.pathStack.push(...parentPaths.map(p => p.trim() + '[1]'));
-		}
+	}
+
+	pushStack(path: string) {
+		const parent = this._getXPath();
+		this.pathStackCount[parent] = 1 + (this.pathStackCount[parent] || 0);
+		this.pathStack.push(`${path}[${this.pathStackCount[parent]}]`);
+	}
+
+	popStack() {
+		this.pathStack.pop();
 	}
 
 	trace(input: string) {
@@ -128,10 +134,22 @@ export class HTMLParser extends Writable {
 				case STATE.TEXT:
 					if (c === '<') this._onStartNewTag();
           else {
-						const xpath = this._getCurrentXPath();
+						const xpath = this._getXPath();
 						// 如果是script或者style标签，则不发送TEXT_DELTA事件，否则可能会导致网页编译报错
 						if(xpath.endsWith('script') || xpath.endsWith('style')) break;
-            this.emit(EVENTS.TEXT_DELTA, this._getCurrentXPath(), c);
+						// 从第一个非空的字符开始
+						if(c.trim()) {
+							let begining = false;
+							if(!this.pathStack[this.pathStack.length - 1].startsWith('$$TEXTNODE')) {
+								this.pushStack('$$TEXTNODE');
+								begining = true;
+							}
+            	if(begining || prev.trim()) {
+								this.emit(EVENTS.TEXT_DELTA, this._getXPath(), c);
+							} else {
+								this.emit(EVENTS.TEXT_DELTA, this._getXPath(), ` ${c}`);
+							}
+						}
           }
 					break;
 
@@ -180,7 +198,11 @@ export class HTMLParser extends Writable {
 	private _onStartNewTag(): void {
 		const text = this._endRecording().trim();
 		if (text) {
-			this.emit(EVENTS.TEXT, this._getCurrentXPath(), text);
+			if(!this.pathStack[this.pathStack.length - 1].startsWith('$$TEXTNODE')) {
+				this.pushStack('$$TEXTNODE');
+			}
+			this.emit(EVENTS.TEXT, this._getXPath(), text);
+			this.popStack();
 		}
 		this.state = STATE.TAG_NAME;
 		this.tagType = TAG_TYPE.OPENING;
@@ -191,19 +213,17 @@ export class HTMLParser extends Writable {
 		const { name, attributes } = this._parseTagString(tag);
 
 		if ((this.tagType & TAG_TYPE.OPENING) === TAG_TYPE.OPENING) {
-			const parent = this._getCurrentXPath();
-			this.pathStackCount[parent] = 1 + (this.pathStackCount[parent] || 0);
-      this.pathStack.push(`${name}[${this.pathStackCount[parent]}]`);
+			this.pushStack(name)
 			// 对于开标签，先发出事件，然后将标签名添加到路径栈中
-			this.emit(EVENTS.OPEN_TAG, this._getCurrentXPath(), name, attributes);
+			this.emit(EVENTS.OPEN_TAG, this._getXPath(), name, attributes);
 		}
     if(isSelfClosingTag(name)) {
       this.tagType |= TAG_TYPE.CLOSING;
     }
 		if ((this.tagType & TAG_TYPE.CLOSING) === TAG_TYPE.CLOSING) {
 			// 对于闭标签，先发出事件，然后从路径栈中移除最后一个元素
-			this.emit(EVENTS.CLOSE_TAG, this._getCurrentXPath(), name, attributes);
-			this.pathStack.pop();
+			this.emit(EVENTS.CLOSE_TAG, this._getXPath(), name, attributes);
+			this.popStack();
 		}
 
 		this.state = STATE.TEXT;
@@ -238,7 +258,7 @@ export class HTMLParser extends Writable {
 		text = text.slice(text.indexOf('[') + 1, text.lastIndexOf(']'));
 		this.state = STATE.TEXT;
 
-		this.emit(EVENTS.CDATA, this._getCurrentXPath(), text);
+		this.emit(EVENTS.CDATA, this._getXPath(), text);
 	}
 
 	private _onCommentStart(): void {
@@ -284,7 +304,7 @@ export class HTMLParser extends Writable {
 	 * 获取当前XML路径
 	 * @return {string} 当前XML路径，格式为/root/child
 	 */
-	private _getCurrentXPath(): string {
+	private _getXPath(): string {
 		return this.pathStack.join('/').slice(6); // 排除$$root
 	}
 }

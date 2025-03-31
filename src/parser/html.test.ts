@@ -4,9 +4,7 @@ describe('HTMLParser', () => {
   let parser: HTMLParser;
 
   beforeEach(() => {
-    parser = new HTMLParser({
-      parentPath: 'x/y',
-    });
+    parser = new HTMLParser();
   });
 
   test('simple HTML tag', done => {
@@ -124,12 +122,14 @@ describe('HTMLParser', () => {
     });
     
     parser.on('end', () => {
-      expect(textDeltas.length).toBe(11); // 'Hello World' has 11 characters
-      expect(textDeltas.map(d => d.char).join('')).toBe('Hello World');
+      expect(textDeltas.length).toBe(10); // 'Hello World' has 10 non space characters
+      expect(textDeltas.map(d => d.char).join('')).toBe('HelloWorld');
+      expect(textDeltas[0].xpath).toBe('/div[1]/$$TEXTNODE[1]');
+      expect(textDeltas[8].xpath).toBe('/div[1]/$$TEXTNODE[3]');
       done();
     });
     
-    parser.write('<div>Hello World</div>');
+    parser.write('<div>Hello<br> World</div>');
     parser.end();
   });
 
@@ -219,9 +219,9 @@ describe('HTMLParser', () => {
     
     parser.on('end', () => {
       expect(xpaths.length).toBe(3);
-      expect(xpaths[0]).toBe('/x[1]/y[1]/div[1]');
-      expect(xpaths[1]).toBe('/x[1]/y[1]/div[1]/p[1]');
-      expect(xpaths[2]).toBe('/x[1]/y[1]/div[1]/p[1]/span[1]');
+      expect(xpaths[0]).toBe('/div[1]');
+      expect(xpaths[1]).toBe('/div[1]/p[1]');
+      expect(xpaths[2]).toBe('/div[1]/p[1]/span[1]');
       done();
     });
     
@@ -235,14 +235,21 @@ describe('HTMLParser', () => {
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       xpaths.push(xpath);
     });
+
+    parser.on(EVENTS.TEXT, (xpath, text) => {
+      xpaths.push(xpath);
+    });
     
     parser.on('end', () => {
-      expect(xpaths.length).toBe(5);
-      expect(xpaths[0]).toBe('/x[1]/y[1]/div[1]');
-      expect(xpaths[1]).toBe('/x[1]/y[1]/div[1]/p[1]');
-      expect(xpaths[2]).toBe('/x[1]/y[1]/div[1]/p[2]');
-      expect(xpaths[3]).toBe('/x[1]/y[1]/div[1]/p[3]');
-      expect(xpaths[4]).toBe('/x[1]/y[1]/div[1]/p[3]/span[1]');
+      expect(xpaths.length).toBe(8);
+      expect(xpaths[0]).toBe('/div[1]');
+      expect(xpaths[1]).toBe('/div[1]/p[1]');
+      expect(xpaths[2]).toBe('/div[1]/p[1]/$$TEXTNODE[1]');
+      expect(xpaths[3]).toBe('/div[1]/p[2]');
+      expect(xpaths[4]).toBe('/div[1]/p[2]/$$TEXTNODE[1]');
+      expect(xpaths[5]).toBe('/div[1]/p[3]');
+      expect(xpaths[6]).toBe('/div[1]/p[3]/span[1]');
+      expect(xpaths[7]).toBe('/div[1]/p[3]/span[1]/$$TEXTNODE[1]');
       done();
     });
     
@@ -265,26 +272,5 @@ describe('HTMLParser', () => {
     
     parser.trace('<div>Test</div>');
     parser.end();
-  });
-
-  test('HTML with parent path in constructor', done => {
-    const customParser = new HTMLParser({
-      parentPath: 'root/parent',
-    });
-    
-    const xpaths: string[] = [];
-    
-    customParser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
-      xpaths.push(xpath);
-    });
-    
-    customParser.on('end', () => {
-      expect(xpaths.length).toBe(1);
-      expect(xpaths[0]).toBe('/root[1]/parent[1]/div[1]');
-      done();
-    });
-    
-    customParser.write('<div>Test</div>');
-    customParser.end();
   });
 });

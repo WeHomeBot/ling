@@ -83,24 +83,23 @@ export async function getChatCompletions(
       if (onObjectResponse) onObjectResponse(content);
     });
   } else if(isHTMLFormat) {
-    parser = new HTMLParser({
-      parentPath,
+    if(parentPath) throw new Error('Don\'t support parent path in HTML Format');
+    parser = new HTMLParser();
+    parser.on(HTMLParserEvents.OPEN_TAG, (path, name, attributes) => {
+      tube.enqueue({ path, type:'open_tag', name, attributes }, isQuiet, bot_id);
     });
-    parser.on(HTMLParserEvents.OPEN_TAG, (xpath, name, attributes) => {
-      tube.enqueue({ xpath, type:'open_tag', name, attributes }, isQuiet, bot_id);
+    parser.on(HTMLParserEvents.CLOSE_TAG, (path, name) => {
+      tube.enqueue({ path, type:'close_tag', name }, isQuiet, bot_id);
+      if (onObjectResponse) onObjectResponse({path, name});
     });
-    parser.on(HTMLParserEvents.CLOSE_TAG, (xpath, name) => {
-      tube.enqueue({ xpath, type:'close_tag', name }, isQuiet, bot_id);
-      if (onObjectResponse) onObjectResponse({xpath, name});
+    parser.on(HTMLParserEvents.TEXT_DELTA, (path, text) => {
+      tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
     });
-    parser.on(HTMLParserEvents.TEXT_DELTA, (xpath, text) => {
-      tube.enqueue({ xpath, type:'text_delta', delta: text }, isQuiet, bot_id);
-    });
-    parser.on(HTMLParserEvents.TEXT, (xpath, text) => {
-      if(xpath.endsWith('script') || xpath.endsWith('style')) {
-        tube.enqueue({ xpath, type:'text_delta', delta: text }, isQuiet, bot_id);
+    parser.on(HTMLParserEvents.TEXT, (path, text) => {
+      if(path.endsWith('script') || path.endsWith('style')) {
+        tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
       }
-      if (onStringResponse) onStringResponse({xpath, text});
+      if (onStringResponse) onStringResponse({path, text});
     });
   }
 
