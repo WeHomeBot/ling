@@ -40,6 +40,8 @@ enum STATE {
 	IGNORE_COMMENT = 4,
 	CDATA = 8,
 	DOCTYPE = 16,
+	INIT = 32,
+	END = 64
 }
 
 // 定义标签类型的枚举
@@ -87,20 +89,20 @@ function isSelfClosingTag(name: string): boolean {
 }
 
 export class HTMLParser extends Writable {
-	private state: STATE;
-	private buffer: string;
-	private pos: number;
-	private tagType: TAG_TYPE;
-	private pathStack: string[]; // 用于跟踪XML路径的栈
+	private stateStack: STATE[] = [STATE.INIT];
+	private buffer: string = '';
+	private pos: number = 0;
+	private tagType: TAG_TYPE = TAG_TYPE.NONE;
+	private pathStack: string[] = []; // 用于跟踪XML路径的栈
 	private pathStackCount: Record<string, number> = {}; // 路径栈的长度
 
 	constructor(options?: {parentPath?: string | null}) {
 		super();
-		this.state = STATE.TEXT;
-		this.buffer = '';
-		this.pos = 0;
-		this.tagType = TAG_TYPE.NONE;
-		this.pathStack = ['$$root']; // 初始化路径栈
+		this.init();
+	}
+
+	get state(): STATE | undefined {
+		return this.stateStack[this.stateStack.length - 1];
 	}
 
 	pushStack(path: string) {
@@ -117,20 +119,40 @@ export class HTMLParser extends Writable {
 		this.write(input);
 	}
 
+	init() {
+		this.stateStack = [STATE.INIT];
+		this.buffer = '';
+		this.pos = 0;
+		this.tagType = TAG_TYPE.NONE;
+		this.pathStack = ['$$root']; // 初始化路径栈
+		this.removeAllListeners();
+	}
+
 	end(args?: any) {
-		this.emit('end'); // 触发end事件
+		if(this.state !== STATE.END) {
+			this.emit('end'); // 触发end事件
+			this.stateStack.push(STATE.END);
+		}
 		return super.end(args);
 	}
 
 	_write(chunk: any, encoding: BufferEncoding, done: (error?: Error | null) => void): void {
 		const chunkStr = typeof chunk !== 'string' ? chunk.toString() : chunk;
 		for (let i = 0; i < chunkStr.length; i++) {
+			if(this.state === STATE.END) break;
 			const c = chunkStr[i];
+			if(this.state === STATE.INIT && c !== '<') {
+				continue;
+			}
 			const prev = this.buffer[this.pos - 1];
 			this.buffer += c;
 			this.pos++;
 
 			switch (this.state) {
+				case STATE.INIT:
+					// 这样能过滤掉AI前面输出的没用文本
+					if (c === '<') this._onStartNewTag();
+					break;
 				case STATE.TEXT:
 					if (c === '<') this._onStartNewTag();
           else {
@@ -204,7 +226,10 @@ export class HTMLParser extends Writable {
 			this.emit(EVENTS.TEXT, this._getXPath(), text);
 			this.popStack();
 		}
-		this.state = STATE.TAG_NAME;
+		if(this.state === STATE.TEXT) {
+			this.stateStack.pop();
+		}
+		this.stateStack.push(STATE.TAG_NAME);
 		this.tagType = TAG_TYPE.OPENING;
 	}
 
@@ -224,9 +249,14 @@ export class HTMLParser extends Writable {
 			// 对于闭标签，先发出事件，然后从路径栈中移除最后一个元素
 			this.emit(EVENTS.CLOSE_TAG, this._getXPath(), name, attributes);
 			this.popStack();
+			this.stateStack.pop();
 		}
-
-		this.state = STATE.TEXT;
+		if (this.state === STATE.INIT && (this.tagType & TAG_TYPE.CLOSING) === TAG_TYPE.CLOSING) {
+			this.end();
+		} else {
+			this.stateStack.push(STATE.TEXT);
+		}
+		// this.stateStack.push(STATE.TEXT);
 		this.tagType = TAG_TYPE.NONE;
 	}
 
@@ -237,7 +267,10 @@ export class HTMLParser extends Writable {
 
 	private _onStartInstruction(): void {
 		this._endRecording();
-		this.state = STATE.INSTRUCTION;
+		if(this.state === STATE.TEXT) {
+			this.stateStack.pop();
+		}
+		this.stateStack.push(STATE.INSTRUCTION);
 	}
 
 	private _onEndInstruction(): void {
@@ -245,34 +278,46 @@ export class HTMLParser extends Writable {
 		const inst = this._endRecording();
 		const { name, attributes } = this._parseTagString(inst);
 		this.emit(EVENTS.INSTRUCTION, name, attributes);
-		this.state = STATE.TEXT;
+		this.stateStack.pop();
+		this.stateStack.push(STATE.TEXT);
 	}
 
 	private _onCDATAStart(): void {
 		this._endRecording();
-		this.state = STATE.CDATA;
+		if(this.state === STATE.TEXT) {
+			this.stateStack.pop();
+		}
+		this.stateStack.push(STATE.CDATA);
 	}
 
 	private _onCDATAEnd(): void {
 		let text = this._endRecording(); // Will return CDATA[XXX] we regexp out the actual text in the CDATA.
 		text = text.slice(text.indexOf('[') + 1, text.lastIndexOf(']'));
-		this.state = STATE.TEXT;
+		this.stateStack.pop();
+		this.stateStack.push(STATE.TEXT);
 
 		this.emit(EVENTS.CDATA, this._getXPath(), text);
 	}
 
 	private _onCommentStart(): void {
-		this.state = STATE.IGNORE_COMMENT;
+		if(this.state === STATE.TEXT) {
+			this.stateStack.pop();
+		}
+		this.stateStack.push(STATE.IGNORE_COMMENT);
 	}
 
 	private _onCommentEnd(): void {
 		this._endRecording();
-		this.state = STATE.TEXT;
+		this.stateStack.pop();
+		this.stateStack.push(STATE.TEXT);
 	}
 
 	private _onDOCTYPEStart(): void {
 		this._endRecording();
-		this.state = STATE.DOCTYPE;
+		if(this.state === STATE.TEXT) {
+			this.stateStack.pop();
+		}
+		this.stateStack.push(STATE.DOCTYPE);
 	}
 
 	private _onDOCTYPEEnd(): void {
@@ -280,7 +325,8 @@ export class HTMLParser extends Writable {
     if (doctype.toUpperCase().startsWith('OCTYPE')) {
 		  this.emit(EVENTS.DOCTYPE, doctype.slice(6).trim());
     }
-		this.state = STATE.TEXT;
+		this.stateStack.pop();
+		this.stateStack.push(STATE.TEXT);
 	}
 
 	/**

@@ -12,6 +12,7 @@ describe('HTMLParser', () => {
     const closeTags: any[] = [];
     const textContents: any[] = [];
     
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name, attributes });
     });
@@ -34,14 +35,15 @@ describe('HTMLParser', () => {
       done();
     });
     
-    parser.write('<div>Hello World</div>');
+    parser.write('```html\n<div>Hello World</div>\n```');
     parser.end();
   });
 
   test('nested HTML tags', done => {
     const openTags: any[] = [];
     const closeTags: any[] = [];
-    
+
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name });
     });
@@ -68,7 +70,8 @@ describe('HTMLParser', () => {
 
   test('HTML with attributes', done => {
     const openTags: any[] = [];
-    
+
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name, attributes });
     });
@@ -89,7 +92,8 @@ describe('HTMLParser', () => {
   test('self-closing tags', done => {
     const openTags: any[] = [];
     const closeTags: any[] = [];
-    
+
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name, attributes });
     });
@@ -116,7 +120,8 @@ describe('HTMLParser', () => {
 
   test('HTML with text delta events', done => {
     const textDeltas: any[] = [];
-    
+
+    parser.init();
     parser.on(EVENTS.TEXT_DELTA, (xpath, char) => {
       textDeltas.push({ xpath, char });
     });
@@ -153,6 +158,7 @@ describe('HTMLParser', () => {
   test('HTML with DOCTYPE', done => {
     const doctypes: any[] = [];
     
+    parser.init();
     parser.on(EVENTS.DOCTYPE, (doctype) => {
       doctypes.push(doctype);
     });
@@ -170,6 +176,7 @@ describe('HTMLParser', () => {
   test('HTML with processing instruction', done => {
     const instructions: any[] = [];
     
+    parser.init();
     parser.on(EVENTS.INSTRUCTION, (name, attributes) => {
       instructions.push({ name, attributes });
     });
@@ -190,6 +197,7 @@ describe('HTMLParser', () => {
     const openTags: any[] = [];
     const textContents: any[] = [];
     
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name });
     });
@@ -213,6 +221,7 @@ describe('HTMLParser', () => {
   test('HTML with XPath tracking', done => {
     const xpaths: string[] = [];
     
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       xpaths.push(xpath);
     });
@@ -232,6 +241,7 @@ describe('HTMLParser', () => {
   test('HTML with multiple same tags (XPath indexing)', done => {
     const xpaths: string[] = [];
     
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       xpaths.push(xpath);
     });
@@ -260,6 +270,7 @@ describe('HTMLParser', () => {
   test('HTML parsing with trace method', done => {
     const openTags: any[] = [];
     
+    parser.init();
     parser.on(EVENTS.OPEN_TAG, (xpath, name, attributes) => {
       openTags.push({ xpath, name });
     });
