@@ -1,15 +1,17 @@
 # Ling (灵)
 
-Ling （灵） 是一个支持 LLM 流式输出（Streaming）的工作流框架。
+Ling （灵） 是一个支持 LLM 流式输出（Streaming）的工作流框架，能够快速响应代理或机器人在工作流中产生的内容流，从而减少等待时间。
 
-## Core Features
+## 核心特性
 
-- [x] 支持 JSONL 协议的数据流输出
+- [x] 支持 [JSONL](https://jsonlines.org/) 协议的数据流输出
 - [x] JSON 的 TOKEN 异常的自动修复
-- [x] 支持复杂的异步工作流
+- [x] 支持多个代理/机器人协作的复杂异步工作流
 - [x] 支持流式输出过程中的状态消息
-- [x] 支持 Server Sent Events
-- [ ] 提供 Clinet SDK
+- [x] 支持 [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
+- [x] 高效的 HTML 和 JSON 流解析器
+- [x] 兼容 OpenAI 和其他 LLM 提供商
+- [ ] 提供客户端 SDK
 
 ## 介绍
 
@@ -61,11 +63,31 @@ data: {"uri": "outline/1/topic", "delta": "的"}
 data: {"uri": "outline/1/topic", "delta": "？"}
 ```
 
-这样实时发送的数据，就方便了前端立即处理。
+这样实时发送的数据，就方便了前端立即处理，并实现响应式的 UI 更新。
 
-## Demo
+## 安装
 
-Server 
+```bash
+npm install @bearbobo/ling
+# 或
+pnpm add @bearbobo/ling
+# 或
+yarn add @bearbobo/ling
+```
+
+## 支持的模型
+
+Ling 支持多种 LLM 提供商和模型：
+
+- OpenAI: GPT-4, GPT-4-Turbo, GPT-4o, GPT-3.5-Turbo
+- Moonshot: moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k
+- Deepseek
+- Qwen: qwen-max-longcontext, qwen-long
+- Yi: yi-medium
+
+## 示例
+
+服务端示例：
 
 ```js
 import 'dotenv/config';
@@ -264,3 +286,158 @@ es.onerror = (e) => {
   console.log(e);
 }
 ```
+
+## 基本用法
+
+```typescript
+import { Ling, ChatConfig, ChatOptions } from '@bearbobo/ling';
+
+// 配置 LLM 提供商
+const config: ChatConfig = {
+  model_name: 'gpt-4-turbo',  // 或其他支持的模型
+  api_key: 'your-api-key',
+  endpoint: 'https://api.openai.com/v1/chat/completions',
+  sse: true  // 启用 Server-Sent Events
+};
+
+// 可选设置
+const options: ChatOptions = {
+  temperature: 0.7,
+  max_tokens: 2000
+};
+
+// 创建 Ling 实例
+const ling = new Ling(config, options);
+
+// 创建聊天机器人
+const bot = ling.createBot();
+
+// 添加系统提示
+bot.addPrompt('你是一个有帮助的助手。');
+
+// 处理流式响应
+ling.on('message', (message) => {
+  console.log('收到消息:', message);
+});
+
+// 处理完成事件
+ling.on('finished', () => {
+  console.log('聊天完成');
+});
+
+// 处理机器人的响应
+bot.on('string-response', (content) => {
+  console.log('机器人响应:', content);
+});
+
+// 开始聊天并发送用户消息
+await bot.chat('告诉我关于云计算的信息。');
+
+// 完成后关闭连接
+await ling.close();
+```
+
+## API 参考
+
+### Ling 类
+
+用于管理 LLM 交互和工作流的主类。
+
+```typescript
+new Ling(config: ChatConfig, options?: ChatOptions)
+```
+
+#### 方法
+
+- `createBot(root?: string | null, config?: Partial<ChatConfig>, options?: Partial<ChatOptions>)`: 创建一个新的 ChatBot 实例
+- `addBot(bot: Bot)`: 添加一个现有的 Bot 到工作流
+- `setCustomParams(params: Record<string, string>)`: 设置用于模板渲染的自定义参数
+- `setSSE(sse: boolean)`: 启用或禁用 Server-Sent Events
+- `close()`: 关闭所有连接并等待机器人完成
+- `cancel()`: 取消所有正在进行的操作
+- `sendEvent(event: any)`: 通过管道发送自定义事件
+
+#### 属性
+
+- `tube`: 获取底层的 Tube 实例
+- `model`: 获取模型名称
+- `stream`: 获取 ReadableStream
+- `id`: 获取会话 ID
+
+#### 事件
+
+- `message`: 收到消息时触发
+- `finished`: 所有操作完成时触发
+- `canceled`: 操作被取消时触发
+- `inference-done`: 机器人完成推理时触发
+
+### ChatBot 类
+
+处理与 LLM 的单独聊天交互。
+
+```typescript
+new ChatBot(tube: Tube, config: ChatConfig, options?: ChatOptions)
+```
+
+#### 方法
+
+- `addPrompt(promptTpl: string, promptData?: Record<string, any>)`: 添加支持模板的系统提示
+- `setPrompt(promptTpl: string, promptData?: Record<string, string>)`: 设置单个系统提示
+- `addHistory(messages: ChatCompletionMessageParam[])`: 添加消息历史
+- `setHistory(messages: ChatCompletionMessageParam[])`: 设置消息历史
+- `addFilter(filter: ((data: any) => boolean) | string | RegExp | FilterMap)`: 添加消息过滤器
+- `clearFilters()`: 清除所有过滤器
+- `chat(message: string | ChatCompletionContentPart[])`: 使用给定消息开始聊天
+- `finish()`: 标记机器人为已完成
+
+#### 事件
+
+- `string-response`: 文本响应时触发
+- `object-response`: 对象响应时触发
+- `inference-done`: 推理完成时触发
+- `response`: 完整响应完成时触发
+- `error`: 发生错误时触发
+
+### ChatConfig
+
+```typescript
+interface ChatConfig {
+  model_name: string;      // LLM 模型名称
+  endpoint: string;        // API 端点
+  api_key: string;         // API 密钥
+  api_version?: string;    // API 版本（对某些提供商）
+  session_id?: string;     // 自定义会话 ID
+  max_tokens?: number;     // 生成的最大 token 数
+  sse?: boolean;           // 启用 Server-Sent Events
+}
+```
+
+### ChatOptions
+
+```typescript
+interface ChatOptions {
+  temperature?: number;        // 控制随机性（0-1）
+  presence_penalty?: number;   // 惩罚重复
+  frequency_penalty?: number;  // 惩罚频率
+  stop?: string[];            // 停止序列
+  top_p?: number;             // 核采样参数
+  response_format?: any;       // 响应格式设置
+  max_tokens?: number;        // 生成的最大 token 数
+  quiet?: boolean;            // 抑制输出
+  bot_id?: string;            // 自定义机器人 ID
+}
+```
+
+## 贡献
+
+欢迎贡献！请随时提交 Pull Request。
+
+1. Fork 仓库
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 打开 Pull Request
+
+## 许可证
+
+本项目采用 Apache 许可证 - 详情请参阅 LICENSE 文件。

@@ -15,11 +15,13 @@ hero:
       link: /api-examples
 
 features:
-  - title: JSON Data-flow
-    details: Proprietary streaming structured data protocol.
-  - title: Data-parsing Hooks
-    details: Leverage hooks for lightning-fast workflow transitions.
+  - title: JSON Streaming
+    details: Real-time JSON parsing with auto-correction for malformed JSON.
+  - title: Multi-bot Workflows
+    details: Create complex AI workflows with multiple bots working together.
+  - title: Model Compatibility
+    details: Works with OpenAI, Moonshot, Deepseek, Qwen, Yi and more.
   - title: Easy to Use
-    details: A simple API that supports both ReadableStream and EventSource.
+    details: Simple API with ReadableStream and Server-Sent Events support.
 ---
 

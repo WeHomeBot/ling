@@ -6,12 +6,14 @@
 
 ## Core Features
 
-- [x] Supports data stream output via [JSONL](https://jsonlines.org/) protocol.
-- [x] Automatic correction of token errors in JSON output.
-- [x] Supports complex asynchronous workflows.
-- [x] Supports status messages during streaming output.
-- [x] Supports [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
-- [ ] Provides Client SDK.
+- [x] Supports data stream output via [JSONL](https://jsonlines.org/) protocol
+- [x] Automatic correction of token errors in JSON output
+- [x] Supports complex asynchronous workflows with multiple agents/bots
+- [x] Supports status messages during streaming output
+- [x] Supports [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
+- [x] HTML and JSON parsers for efficient stream processing
+- [x] Compatible with OpenAI and other LLM providers
+- [ ] Provides Client SDK
 
 ## Introduction
 
@@ -58,11 +60,31 @@ data: {"uri": "outline/1/topic", "delta": "?"}
 ...
 ```
 
-This method of real-time data transmission facilitates immediate front-end processing.
+This method of real-time data transmission facilitates immediate front-end processing and enables responsive UI updates.
+
+## Installation
+
+bash
+npm install @bearbobo/ling
+# or
+pnpm add @bearbobo/ling
+# or
+yarn add @bearbobo/ling
+
+
+## Supported Models
+
+Ling supports various LLM providers and models:
+
+- OpenAI: GPT-4, GPT-4-Turbo, GPT-4o, GPT-3.5-Turbo
+- Moonshot: moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k
+- Deepseek
+- Qwen: qwen-max-longcontext, qwen-long
+- Yi: yi-medium
 
 ## Demo
 
-Server 
+Server Example:
 
 ```js
 import 'dotenv/config';
@@ -261,3 +283,158 @@ es.onerror = (e) => {
   console.log(e);
 }
 ```
+
+## Basic Usage
+
+```typescript
+import { Ling, ChatConfig, ChatOptions } from '@bearbobo/ling';
+
+// Configure LLM provider
+const config: ChatConfig = {
+  model_name: 'gpt-4-turbo',  // or any other supported model
+  api_key: 'your-api-key',
+  endpoint: 'https://api.openai.com/v1/chat/completions',
+  sse: true  // Enable Server-Sent Events
+};
+
+// Optional settings
+const options: ChatOptions = {
+  temperature: 0.7,
+  max_tokens: 2000
+};
+
+// Create Ling instance
+const ling = new Ling(config, options);
+
+// Create a bot for chat
+const bot = ling.createBot();
+
+// Add system prompt
+bot.addPrompt('You are a helpful assistant.');
+
+// Handle streaming response
+ling.on('message', (message) => {
+  console.log('Received message:', message);
+});
+
+// Handle completion event
+ling.on('finished', () => {
+  console.log('Chat completed');
+});
+
+// Handle bot's response
+bot.on('string-response', (content) => {
+  console.log('Bot response:', content);
+});
+
+// Start chat with user message
+await bot.chat('Tell me about cloud computing.');
+
+// Close the connection when done
+await ling.close();
+```
+
+## API Reference
+
+### Ling Class
+
+The main class for managing LLM interactions and workflows.
+
+```typescript
+new Ling(config: ChatConfig, options?: ChatOptions)
+```
+
+#### Methods
+
+- `createBot(root?: string | null, config?: Partial<ChatConfig>, options?: Partial<ChatOptions>)`: Creates a new ChatBot instance
+- `addBot(bot: Bot)`: Adds an existing Bot to the workflow
+- `setCustomParams(params: Record<string, string>)`: Sets custom parameters for template rendering
+- `setSSE(sse: boolean)`: Enables or disables Server-Sent Events
+- `close()`: Closes all connections and waits for bots to finish
+- `cancel()`: Cancels all ongoing operations
+- `sendEvent(event: any)`: Sends a custom event through the tube
+
+#### Properties
+
+- `tube`: Gets the underlying Tube instance
+- `model`: Gets the model name
+- `stream`: Gets the ReadableStream
+- `id`: Gets the session ID
+
+#### Events
+
+- `message`: Emitted when a message is received
+- `finished`: Emitted when all operations are finished
+- `canceled`: Emitted when operations are canceled
+- `inference-done`: Emitted when a bot completes inference
+
+### ChatBot Class
+
+Handles individual chat interactions with LLMs.
+
+```typescript
+new ChatBot(tube: Tube, config: ChatConfig, options?: ChatOptions)
+```
+
+#### Methods
+
+- `addPrompt(promptTpl: string, promptData?: Record<string, any>)`: Adds a system prompt with template support
+- `setPrompt(promptTpl: string, promptData?: Record<string, string>)`: Sets a single system prompt
+- `addHistory(messages: ChatCompletionMessageParam[])`: Adds message history
+- `setHistory(messages: ChatCompletionMessageParam[])`: Sets message history
+- `addFilter(filter: ((data: any) => boolean) | string | RegExp | FilterMap)`: Adds a filter for messages
+- `clearFilters()`: Clears all filters
+- `chat(message: string | ChatCompletionContentPart[])`: Starts a chat with the given message
+- `finish()`: Marks the bot as finished
+
+#### Events
+
+- `string-response`: Emitted for text responses
+- `object-response`: Emitted for object responses
+- `inference-done`: Emitted when inference is complete
+- `response`: Emitted when the full response is complete
+- `error`: Emitted on errors
+
+### ChatConfig
+
+```typescript
+interface ChatConfig {
+  model_name: string;      // LLM model name
+  endpoint: string;        // API endpoint
+  api_key: string;         // API key
+  api_version?: string;    // API version (for some providers)
+  session_id?: string;     // Custom session ID
+  max_tokens?: number;     // Maximum tokens to generate
+  sse?: boolean;           // Enable Server-Sent Events
+}
+```
+
+### ChatOptions
+
+```typescript
+interface ChatOptions {
+  temperature?: number;        // Controls randomness (0-1)
+  presence_penalty?: number;   // Penalizes repetition
+  frequency_penalty?: number;  // Penalizes frequency
+  stop?: string[];            // Stop sequences
+  top_p?: number;             // Nucleus sampling parameter
+  response_format?: any;       // Response format settings
+  max_tokens?: number;        // Maximum tokens to generate
+  quiet?: boolean;            // Suppress output
+  bot_id?: string;            // Custom bot ID
+}
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the Apache License - see the LICENSE file for details.
