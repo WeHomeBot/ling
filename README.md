@@ -64,13 +64,13 @@ This method of real-time data transmission facilitates immediate front-end proce
 
 ## Installation
 
-bash
+```bash
 npm install @bearbobo/ling
 # or
 pnpm add @bearbobo/ling
 # or
 yarn add @bearbobo/ling
-
+```
 
 ## Supported Models
 
