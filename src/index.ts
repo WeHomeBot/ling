@@ -5,11 +5,13 @@ import { ChatBot, Bot, WorkState } from './bot/index';
 import { Tube } from './tube';
 import type { ChatConfig, ChatOptions } from "./types";
 import { sleep, shortId } from './utils';
+import { Flow, FlowNode } from './flow';
 
 export type { ChatConfig, ChatOptions } from "./types";
 export type { Tube } from "./tube";
 
 export { Bot, ChatBot, WorkState } from "./bot";
+export { Flow, FlowNode };
 
 export class Ling extends EventEmitter {
   protected _tube: Tube;
@@ -135,6 +137,10 @@ export class Ling extends EventEmitter {
 
   sendEvent(event: any) {
     this._tube.enqueue(event);
+  }
+
+  flow() {
+    return new Flow();
   }
 
   get tube() {
