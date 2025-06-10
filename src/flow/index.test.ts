@@ -22,7 +22,7 @@ describe('Flow', () => {
     node.execute(({ next }) => {
       mockFn();
       next();
-    });
+    }).finish();
 
     await flow.run();
     expect(mockFn).toHaveBeenCalled();
@@ -54,15 +54,17 @@ describe('Flow', () => {
     const results: any[] = [];
     const node = flow.node();
     
-    node.execute(({ next, emit }) => {
+    const nextNode = node.execute(({ next, emit }) => {
       emit('custom-event', 'data1');
       next('data2');
-    })
-    .on('custom-event', ({ event, next }) => {
+    });
+
+    nextNode.on('custom-event', ({ event, next }) => {
       results.push(event.args[0]);
       next();
-    })
-    .execute(({ event, next }) => {
+    });
+
+    nextNode.execute(({ event, next }) => {
       results.push(event.args[0]);
       next();
     })

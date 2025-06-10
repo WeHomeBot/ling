@@ -35,22 +35,23 @@ export class Tube extends EventEmitter {
 
   enqueue(data: unknown, isQuiet: boolean = false, bot_id?: string) {
     const isFiltered = bot_id && this.filters[bot_id]?.some(filter => filter(data));
-    const id = `${this.session_id}:${this.messageIndex++}`;
+    const id = `${this.session_id}:${++this.messageIndex}`;
     if (!this._closed) {
       try {
+        let event = '';
         if(typeof data !== 'string') {
           if(this._sse && (data as any)?.event) {
-            const event = `event: ${(data as any).event}\n`
-            if(!isQuiet && !isFiltered) this.controller?.enqueue(event);
+            event = `event: ${(data as any).event}\n`
             this.emit('message', {id, data: event});
             if((data as any).event === 'error') {
               this.emit('error', {id, data});
             }
           }
-          data = JSON.stringify(data) + '\n'; // use jsonl (json lines)
+          data = JSON.stringify(data) + '\n';
         }
         if(this._sse) {
-          data = `data: ${(data as string).replace(/\n$/,'')}\nid: ${id}\n\n`;
+          // data 如果是 string，则没有末尾换行符
+          data = `id: ${id}\n${event}data: ${(data as string).replace(/\n$/,'')}\n\n`;
         }
         if(!isQuiet && !isFiltered) this.controller?.enqueue(data);
         this.emit('message', {id, data});
@@ -62,12 +63,13 @@ export class Tube extends EventEmitter {
     }
   }
 
-  close() {
+  close(force_close: boolean = false) {
     if(this._closed) return;
     this.enqueue({event: 'finished'});
     this.emit('finished');
     this._closed = true;
-    if(!this._sse) this.controller?.close();
+    // SSE 下直接关闭的话，客户端会自动重连，所以这里等客户端发送断开请求自动关闭
+    if(force_close || !this._sse) this.controller?.close();
   }
 
   async cancel() {
@@ -79,6 +81,10 @@ export class Tube extends EventEmitter {
       this.emit('canceled');
       await this.stream.cancel();
     } catch(ex) {}
+  }
+
+  get id() {
+    return this.session_id;
   }
 
   get canceled() {

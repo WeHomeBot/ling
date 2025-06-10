@@ -7,6 +7,34 @@ describe('Tube', () => {
     tube = new Tube();
   });
 
+  test('sse', done => {
+    const _arr: any[] = [];
+    tube.setSSE(true);
+    tube.enqueue('a');
+    tube.enqueue('b');
+    tube.enqueue('c');
+    tube.enqueue('d');
+    tube.close(true);
+    tube.setSSE(false);
+
+    const reader = tube.stream.getReader();
+    reader.read().then(function processText({ done:_done, value }) : any {
+      console.log(_done, value, _arr);
+      if (_done) {
+        expect(_arr).toEqual([
+          `id: ${tube.id}:1\ndata: a\n\n`, 
+          `id: ${tube.id}:2\ndata: b\n\n`, 
+          `id: ${tube.id}:3\ndata: c\n\n`, 
+          `id: ${tube.id}:4\ndata: d\n\n`, 
+          `id: ${tube.id}:5\nevent: finished\ndata: {\"event\":\"finished\"}\n\n`]);
+        done();
+        return;
+      }
+      _arr.push(value);
+      return reader.read().then(processText);
+    });
+  });
+
   test('sample tube', done => {
     const _arr: any[] = [];
 
