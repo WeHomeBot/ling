@@ -1,3 +1,4 @@
+import path from 'node:path';
 import OpenAI from 'openai';
 
 import { AzureOpenAI } from "openai";
@@ -9,6 +10,7 @@ import { JSONParser, HTMLParser, HTMLParserEvents } from '../../parser';
 import { sleep } from '../../utils';
 
 import "dotenv/config";
+import { MCPClient } from '../../mcp/client';
 
 const DEFAULT_CHAT_OPTIONS = {
   temperature: 0.9,
@@ -22,6 +24,7 @@ export async function getChatCompletions(
   messages: any[],
   config: ChatConfig,
   options?: ChatOptions,
+  mcpClient?: MCPClient,
   onComplete?: (content: string) => void,
   onStringResponse?: (content: any) => void,
   onObjectResponse?: (content: any) => void
@@ -69,13 +72,6 @@ export async function getChatCompletions(
     options.response_format = {type: 'text'};
   }
 
-  const events = await client.chat.completions.create({
-    messages,
-    ...options,
-    model,
-    stream: true,
-  });
-
   let content = '';
   const buffer: any[] = [];
   let done = false;
@@ -117,64 +113,122 @@ export async function getChatCompletions(
     });
   }
 
-  const promises: any[] = [
-    (async () => {
-      for await (const event of events) {
-        if (tube.canceled) break;
-        const choice = event.choices[0];
-        if (choice && choice.delta) {
-          if (choice.delta.content) {
-            content += choice.delta.content;
-            if (parser) { // JSON format
-              parser.trace(choice.delta.content);
-            } else {
-              buffer.push({ uri: parentPath, delta: choice.delta.content });
+  let tools: OpenAI.Chat.Completions.ChatCompletionTool[];
+  if(mcpClient) {
+    tools = await mcpClient.listTools(options.tool_type || 'function_call');
+  }
+
+  const proceed = async(messages: any[]) => {
+    const events = await client.chat.completions.create({
+      messages,
+      ...options,
+      tools: tools.length > 0 ? tools : undefined,
+      model,
+      stream: true,
+    });
+    let hasToolCall = false;
+    let toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = [];
+
+    for await (const event of events) {
+      if (tube.canceled) break;
+      const choice = event.choices[0];
+      if (choice && choice.delta) {
+        const delta = choice.delta;
+        if (delta.content) {
+          content += delta.content;
+          if (parser) { // JSON format
+            parser.trace(delta.content);
+          } else {
+            buffer.push({ uri: parentPath, delta: delta.content });
+          }
+        }
+        // Note: reasoning property removed in OpenAI v5
+        if ((delta as any).reasoning) {
+          buffer.push({ uri: path.join(parentPath || '', '$reasoning_context'), delta: (delta as any).reasoning });
+        }
+        if (delta.tool_calls) {
+          hasToolCall = true;
+          for (const toolCall of delta.tool_calls) {
+            if (toolCall.index !== undefined) {
+              if (!toolCalls[toolCall.index]) {
+                toolCalls[toolCall.index] = {
+                  id: toolCall.id || '',
+                  type: 'function',
+                  function: { name: '', arguments: '' }
+                };
+              }
+              
+              if (toolCall.function?.name) {
+                // join function name
+                toolCalls[toolCall.index].function.name += toolCall.function.name;
+              }
+              if (toolCall.function?.arguments) {
+                // join arguments
+                toolCalls[toolCall.index].function.arguments += toolCall.function.arguments;
+              }
             }
           }
-          // const filterResults = choice.content_filter_results;
-          // if (!filterResults) {
-          //   continue;
-          // }
-          // if (filterResults.error) {
-          //   console.log(
-          //     `\tContent filter ran into an error ${filterResults.error.code}: ${filterResults.error.message}`,
-          //   );
-          // } else {
-          //   const { hate, sexual, selfHarm, violence } = filterResults;
-          //   console.log(
-          //     `\tHate category is filtered: ${hate?.filtered}, with ${hate?.severity} severity`,
-          //   );
-          //   console.log(
-          //     `\tSexual category is filtered: ${sexual?.filtered}, with ${sexual?.severity} severity`,
-          //   );
-          //   console.log(
-          //     `\tSelf-harm category is filtered: ${selfHarm?.filtered}, with ${selfHarm?.severity} severity`,
-          //   );
-          //   console.log(
-          //     `\tViolence category is filtered: ${violence?.filtered}, with ${violence?.severity} severity`,
-          //   );
-          // }
         }
       }
-      done = true;
-      // if (parser) {
-      //   parser.finish();
-      // }
-    })(),
-    (async () => {
-      let i = 0;
-      while (!(done && i >= buffer.length)) {
-        if (i < buffer.length) {
-          tube.enqueue(buffer[i], isQuiet, bot_id);
-          i++;
-        }
-        const delta = buffer.length - i;
-        if (done || delta <= 0) await sleep(10);
-        else await sleep(Math.max(10, 1000 / delta));
-      }
-      if (!tube.canceled && onComplete) onComplete(content);
-    })(),
+    }
+
+    if (hasToolCall && toolCalls.length > 0) {
+      const toolResults = await Promise.all(
+        toolCalls.map(async (toolCall) => {
+          buffer.push({
+            url: path.join(parentPath || '', '$tools'), 
+            delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
+          });
+          const result = await mcpClient!.callTool(
+            toolCall.function.name,
+            JSON.parse(toolCall.function.arguments)
+          );
+          return {
+            role: 'tool' as const,
+            tool_call_id: toolCall.id,
+            content: result.content,
+          };
+        })
+      );
+
+      // Continue with tool results
+      const assistantMessage: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam = {
+        role: 'assistant',
+        content: content || null,
+        tool_calls: toolCalls,
+      };
+
+      return await proceed([
+        ...messages,
+        assistantMessage,
+        ...toolResults
+      ]);
+    }
+
+    done = true;
+    // if (parser) {
+    //   parser.finish();
+    // }
+  };
+
+  const promises: any[] = [
+    proceed(messages)
   ];
+
+  promises.push((async () => {
+    let i = 0;
+    while (!(done && i >= buffer.length)) {
+      if (i < buffer.length) {
+        tube.enqueue(buffer[i], isQuiet, bot_id);
+        i++;
+      }
+      const delta = buffer.length - i;
+      if (done || delta <= 0) await sleep(10);
+      else await sleep(Math.max(10, 1000 / delta));
+    }
+    if (!tube.canceled && onComplete) onComplete(content);
+  })());
+
   await Promise.race(promises);
   if (!isJSONFormat && onStringResponse) onStringResponse({ uri: parentPath, delta: content });
   return content; // inference done

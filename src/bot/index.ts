@@ -6,9 +6,10 @@ import { getChatCompletions } from "../adapter/openai";
 import { getChatCompletions as getCozeChatCompletions } from "../adapter/coze";
 
 import type { ChatConfig, ChatOptions } from "../types";
-import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPart } from "openai/resources/index";
+import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 
 import { shortId } from '../utils';
+import { MCPClient } from '../mcp/client';
 
 type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
 
@@ -36,12 +37,17 @@ export class ChatBot extends Bot {
   private config: ChatConfig;
   private options: ChatOptions;
   private id: string;
+  private _mcpClient: MCPClient | undefined;
 
   constructor(private tube: Tube, config: ChatConfig, options: ChatOptions = {}) {
     super();
     this.id = shortId();
     this.config = { ...config };
     this.options = { ...options, bot_id: this.id };
+  }
+
+  setMCPClient(client: MCPClient) {
+    this._mcpClient = client;
   }
 
   isJSONFormat() {
@@ -150,7 +156,7 @@ export class ChatBot extends Bot {
             this.emit('inference-done', content);
           });
       }
-      return await getChatCompletions(this.tube, messages, this.config, this.options, 
+      return await getChatCompletions(this.tube, messages, this.config, this.options, this._mcpClient,
         (content) => { // on complete
           this.chatState = WorkState.FINISHED;
           this.emit('response', content);

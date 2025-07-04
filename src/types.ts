@@ -34,4 +34,20 @@ export interface ChatOptions {
   max_tokens?: number;
   quiet?: boolean;
   bot_id?: string;
+  tool_type?: 'function_call' | 'tool_call';
+}
+
+/**
+ * MCP 服务器配置接口
+ */
+export interface McpServerConfig {
+  command: string;
+  args: string[];
+}
+
+/**
+ * MCP 服务器集合配置接口
+ */
+export interface McpServersConfig {
+  [name: string]: McpServerConfig;
 }

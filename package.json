@@ -42,8 +42,9 @@
   },
   "dependencies": {
     "@azure/openai": "2.0.0-beta.1",
+    "@modelcontextprotocol/sdk": "^1.15.0",
     "lodash.merge": "^4.6.2",
     "nunjucks": "^3.2.4",
-    "openai": "^4.58.1"
+    "openai": "^5.8.2"
   }
 }

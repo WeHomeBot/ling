@@ -3,9 +3,11 @@ import merge from 'lodash.merge';
 
 import { ChatBot, Bot, WorkState } from './bot/index';
 import { Tube } from './tube';
-import type { ChatConfig, ChatOptions } from "./types";
+import type { ChatConfig, ChatOptions, McpServersConfig } from "./types";
 import { sleep, shortId } from './utils';
 import { Flow, FlowNode } from './flow';
+
+import { MCPClient } from './mcp/client';
 
 export type { ChatConfig, ChatOptions } from "./types";
 export type { Tube } from "./tube";
@@ -20,6 +22,8 @@ export class Ling extends EventEmitter {
   protected session_id = shortId();
   private _promise: Promise<any> | null = null;
   private _tasks: Promise<any>[] = [];
+  private _mcpClient: MCPClient = new MCPClient();
+
   constructor(protected config: ChatConfig, protected options: ChatOptions = {}) {
     super();
     if(config.session_id) {
@@ -42,6 +46,10 @@ export class Ling extends EventEmitter {
     // this._tube.on('error', (error) => {
     //   this.emit('error', error);
     // });
+  }
+
+  registerMSPServers(config: { mcpServers: McpServersConfig }) {
+    this._mcpClient.registerServers(config);
   }
 
   handleTask(task: () => Promise<any>) {
@@ -86,6 +94,7 @@ export class Ling extends EventEmitter {
 
   createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
     const bot = new ChatBot(this._tube, {...this.config, ...config}, {...this.options, ...options});
+    bot.setMCPClient(this._mcpClient);
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
     bot.addListener('error', (error) => {
