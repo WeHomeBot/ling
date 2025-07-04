@@ -18,6 +18,13 @@ export class MCPClient {
     this.clients[name] = createClient(name, server);
   }
 
+  async closeServers() {
+    for (const [name, client] of Object.entries(this.clients)) {
+      const _client = await client;
+      _client.close();
+    }
+  }
+
   public async listTools(toolsType: 'function_call' | 'tool_call'): Promise<OpenAI.Chat.Completions.ChatCompletionTool[]> {
     const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
     for await (const [name, client] of Object.entries(this.clients)) {

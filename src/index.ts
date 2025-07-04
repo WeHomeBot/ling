@@ -136,6 +136,9 @@ export class Ling extends EventEmitter {
     this._tube.close();
     this.bots = [];
     this._tasks = [];
+    if(this._mcpClient) {
+      this._mcpClient.closeServers();
+    }
   }
 
   async cancel() {
