@@ -1,6 +1,6 @@
 {
   "name": "@bearbobo/ling",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The framework for LLMs",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -17,6 +17,14 @@
   "keywords": [],
   "author": "",
   "license": "Apache",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bearbobo/wehomebot-ling.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bearbobo/wehomebot-ling/issues"
+  },
+  "homepage": "https://github.com/bearbobo/wehomebot-ling#readme",
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/body-parser": "^1.19.5",
