@@ -183,7 +183,7 @@ export async function getChatCompletions(
           // console.log(JSON.stringify(toolCall));
           buffer.push({
             url: path.join(parentPath || '', '$tools', (toolIndex++).toString()), 
-            delta: toolCall.function,
+            delta: JSON.stringify(toolCall.function),
             // delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
           });
           try {
