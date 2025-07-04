@@ -114,6 +114,7 @@ export async function getChatCompletions(
   }
 
   let tools: OpenAI.Chat.Completions.ChatCompletionTool[];
+  let toolIndex = 0;
   if(mcpClient) {
     tools = await mcpClient.listTools(options.tool_type || 'function_call');
   }
@@ -132,12 +133,16 @@ export async function getChatCompletions(
     for await (const event of events) {
       if (tube.canceled) break;
       const choice = event.choices[0];
+      // console.log(JSON.stringify(choice));
       if (choice && choice.delta) {
         const delta = choice.delta;
         if (delta.content) {
           content += delta.content;
           if (parser) { // JSON format
             parser.trace(delta.content);
+            if(isJSONFormat && (parser as JSONParser).isBeforeStart()) {
+              buffer.push({ uri: path.join(parentPath || '', '$reasoning_context'), delta: delta.content });
+            }
           } else {
             buffer.push({ uri: parentPath, delta: delta.content });
           }
@@ -175,19 +180,30 @@ export async function getChatCompletions(
     if (hasToolCall && toolCalls.length > 0) {
       const toolResults = await Promise.all(
         toolCalls.map(async (toolCall) => {
+          // console.log(JSON.stringify(toolCall));
           buffer.push({
-            url: path.join(parentPath || '', '$tools'), 
-            delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
+            url: path.join(parentPath || '', '$tools', (toolIndex++).toString()), 
+            delta: toolCall.function,
+            // delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
           });
-          const result = await mcpClient!.callTool(
-            toolCall.function.name,
-            JSON.parse(toolCall.function.arguments)
-          );
-          return {
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
-            content: result.content,
-          };
+          try {
+            const result = await mcpClient!.callTool(
+              toolCall.function.name,
+              JSON.parse(toolCall.function.arguments || '{}')
+            );
+            return {
+              role: 'tool' as const,
+              tool_call_id: toolCall.id,
+              content: result.content,
+            };
+          } catch(ex: any) {
+            console.error(ex);
+            return {
+              role: 'tool' as const,
+              tool_call_id: toolCall.id,
+              content: 'Error: ' + ex.message,
+            }
+          }
         })
       );
 

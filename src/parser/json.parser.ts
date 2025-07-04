@@ -319,6 +319,14 @@ export class JSONParser extends EventEmitter {
     }
   }
 
+  isBeforeStart() {
+    return this.currentState === LexerStates.Begin;
+  }
+
+  isAfterEnd() {
+    return this.currentState === LexerStates.Finish;
+  }
+
   private traceObject(input: string) {
     // this.currentToken = '';
     if (isWhiteSpace(input) || input === ',') {
