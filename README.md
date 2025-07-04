@@ -13,6 +13,7 @@
 - [x] Supports [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
 - [x] HTML and JSON parsers for efficient stream processing
 - [x] Compatible with OpenAI and other LLM providers
+- [x] **MCP (Model Context Protocol) Client Support** - Enables tool calling and external service integration
 - [ ] Provides Client SDK
 
 ## Introduction
@@ -422,8 +423,73 @@ interface ChatOptions {
   max_tokens?: number;        // Maximum tokens to generate
   quiet?: boolean;            // Suppress output
   bot_id?: string;            // Custom bot ID
+  tool_type?: 'function_call' | 'tool_call';  // Tool calling type for MCP
 }
 ```
+
+### MCP Client Support
+
+Ling now supports MCP (Model Context Protocol) for tool calling and external service integration.
+
+#### MCP Client Usage
+
+```typescript
+import { Ling } from '@bearbobo/ling';
+import type { ChatConfig } from '@bearbobo/ling';
+
+const config: ChatConfig = {
+  model_name: 'gpt-4',
+  api_key: 'your-api-key',
+  endpoint: 'https://api.openai.com/v1'
+};
+
+const ling = new Ling(config);
+
+// 注册MCP服务器
+ling.registerMSPServers({
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        process.cwd()
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"]
+    }
+  }
+});
+
+// 创建Bot并使用MCP功能
+const bot = ling.createBot();
+bot.chat('请帮我读取当前目录下的文件列表');
+```
+
+#### MCP Configuration Types
+
+```typescript
+interface McpServerConfig {
+  command: string;  // Command to start the MCP server
+  args: string[];   // Arguments for the command
+}
+
+interface McpServersConfig {
+  [name: string]: McpServerConfig;  // Named MCP server configurations
+}
+```
+
+#### MCP Related Methods
+
+**Ling Class:**
+- `registerMSPServers(config: McpServersConfig)`: Register multiple MCP servers
+
+**Internal MCPClient Methods (accessed through Ling):**
+- `registerServer(name: string, config: McpServerConfig)`: Register a single MCP server
+- `listTools(toolType?: 'function_call' | 'tool_call')`: List all available tools from registered servers
+- `callTool(name: string, args: any)`: Execute a tool call
 
 ## Contributing
 
