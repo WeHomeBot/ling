@@ -18,15 +18,16 @@ describe('Tube', () => {
     tube.setSSE(false);
 
     const reader = tube.stream.getReader();
-    reader.read().then(function processText({ done:_done, value }) : any {
+    reader.read().then(function processText({ done: _done, value }): any {
       console.log(_done, value, _arr);
       if (_done) {
         expect(_arr).toEqual([
-          `id: ${tube.id}:1\ndata: a\n\n`, 
-          `id: ${tube.id}:2\ndata: b\n\n`, 
-          `id: ${tube.id}:3\ndata: c\n\n`, 
-          `id: ${tube.id}:4\ndata: d\n\n`, 
-          `id: ${tube.id}:5\nevent: finished\ndata: {\"event\":\"finished\"}\n\n`]);
+          `id: ${tube.id}:1\ndata: a\n\n`,
+          `id: ${tube.id}:2\ndata: b\n\n`,
+          `id: ${tube.id}:3\ndata: c\n\n`,
+          `id: ${tube.id}:4\ndata: d\n\n`,
+          `id: ${tube.id}:5\nevent: finished\ndata: {"event":"finished"}\n\n`,
+        ]);
         done();
         return;
       }
@@ -68,9 +69,37 @@ describe('Tube', () => {
     tube.close();
 
     const reader = tube.stream.getReader();
-    reader.read().then(function processText({ done:_done, value }) : any {
+    reader.read().then(function processText({ done: _done, value }): any {
       if (_done) {
-        expect(_arr).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', "{\"event\":\"finished\"}\n"]);
+        expect(_arr).toEqual([
+          'a',
+          'b',
+          'c',
+          'd',
+          'e',
+          'f',
+          'g',
+          'h',
+          'i',
+          'j',
+          'k',
+          'l',
+          'm',
+          'n',
+          'o',
+          'p',
+          'q',
+          'r',
+          's',
+          't',
+          'u',
+          'v',
+          'w',
+          'x',
+          'y',
+          'z',
+          '{"event":"finished"}\n',
+        ]);
         done();
         return;
       }
@@ -112,7 +141,7 @@ describe('Tube', () => {
     tube.cancel();
 
     const reader = tube.stream.getReader();
-    reader.read().then(function processText({ done:_done, value }) : any {
+    reader.read().then(function processText({ done: _done, value }): any {
       if (_done) {
         expect(_arr).toEqual([]);
         done();
@@ -122,4 +151,4 @@ describe('Tube', () => {
       return reader.read().then(processText);
     });
   });
-})
+});

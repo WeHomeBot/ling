@@ -3,16 +3,16 @@ import merge from 'lodash.merge';
 
 import { ChatBot, Bot, WorkState } from './bot/index';
 import { Tube } from './tube';
-import type { ChatConfig, ChatOptions, McpServersConfig } from "./types";
+import type { ChatConfig, ChatOptions, McpServersConfig } from './types';
 import { sleep, shortId } from './utils';
 import { Flow, FlowNode } from './flow';
 
 import { MCPClient } from './mcp/client';
 
-export type { ChatConfig, ChatOptions } from "./types";
-export type { Tube } from "./tube";
+export type { ChatConfig, ChatOptions } from './types';
+export type { Tube } from './tube';
 
-export { Bot, ChatBot, WorkState } from "./bot";
+export { Bot, ChatBot, WorkState } from './bot';
 export { Flow, FlowNode };
 
 export class Ling extends EventEmitter {
@@ -24,17 +24,20 @@ export class Ling extends EventEmitter {
   private _tasks: Promise<any>[] = [];
   private _mcpClient: MCPClient = new MCPClient();
 
-  constructor(protected config: ChatConfig, protected options: ChatOptions = {}) {
+  constructor(
+    protected config: ChatConfig,
+    protected options: ChatOptions = {}
+  ) {
     super();
-    if(config.session_id) {
+    if (config.session_id) {
       this.session_id = config.session_id;
       delete config.session_id;
     }
     this._tube = new Tube(this.session_id);
-    if(config.sse) {
+    if (config.sse) {
       this._tube.setSSE(true);
     }
-    this._tube.on('message', (message) => {
+    this._tube.on('message', message => {
       this.emit('message', message);
     });
     this._tube.on('finished', () => {
@@ -59,23 +62,27 @@ export class Ling extends EventEmitter {
   }
 
   get promise() {
-    if(!this._promise) {
+    if (!this._promise) {
       this._promise = new Promise((resolve, reject) => {
         let result: any = {};
         this.on('inference-done', (content, bot) => {
-          let output = bot.isJSONFormat() ? JSON.parse(content) : content;
-          if(bot.root != null) {
+          const output = bot.isJSONFormat() ? JSON.parse(content) : content;
+          if (bot.root != null) {
             result[bot.root] = output;
           } else {
             result = merge(result, output);
           }
           setTimeout(async () => {
             // 没有新的bot且其他bot的状态都都推理结束
-            if(this.bots.every(
-              (_bot: Bot) => _bot.state === WorkState.INFERENCE_DONE 
-              || _bot.state === WorkState.FINISHED 
-              || _bot.state === WorkState.ERROR || bot === _bot
-            )) {
+            if (
+              this.bots.every(
+                (_bot: Bot) =>
+                  _bot.state === WorkState.INFERENCE_DONE ||
+                  _bot.state === WorkState.FINISHED ||
+                  _bot.state === WorkState.ERROR ||
+                  bot === _bot
+              )
+            ) {
               await Promise.all(this._tasks);
               resolve(result);
             }
@@ -92,15 +99,23 @@ export class Ling extends EventEmitter {
     return this._promise;
   }
 
-  createBot(root: string | null = null, config: Partial<ChatConfig> = {}, options: Partial<ChatOptions> = {}) {
-    const bot = new ChatBot(this._tube, {...this.config, ...config}, {...this.options, ...options});
+  createBot(
+    root: string | null = null,
+    config: Partial<ChatConfig> = {},
+    options: Partial<ChatOptions> = {}
+  ) {
+    const bot = new ChatBot(
+      this._tube,
+      { ...this.config, ...config },
+      { ...this.options, ...options }
+    );
     bot.setMCPClient(this._mcpClient);
     bot.setJSONRoot(root);
     bot.setCustomParams(this.customParams);
-    bot.addListener('error', (error) => {
+    bot.addListener('error', error => {
       this.emit('error', error, bot);
     });
-    bot.addListener('inference-done', (content) => {
+    bot.addListener('inference-done', content => {
       this.emit('inference-done', content, bot);
     });
     this.bots.push(bot);
@@ -112,7 +127,7 @@ export class Ling extends EventEmitter {
   }
 
   setCustomParams(params: Record<string, string>) {
-    this.customParams = {...params};
+    this.customParams = { ...params };
   }
 
   setSSE(sse: boolean) {
@@ -128,7 +143,7 @@ export class Ling extends EventEmitter {
       await sleep(100);
     }
     await sleep(500); // 再等0.5秒，确保没有新的 bot 创建，所有 bot 都真正结束
-    if(!this.isAllBotsFinished()) {
+    if (!this.isAllBotsFinished()) {
       this.close(); // 如果还有 bot 没有结束，则再关闭一次
       return;
     }
@@ -136,7 +151,7 @@ export class Ling extends EventEmitter {
     this._tube.close();
     this.bots = [];
     this._tasks = [];
-    if(this._mcpClient) {
+    if (this._mcpClient) {
       this._mcpClient.closeServers();
     }
   }

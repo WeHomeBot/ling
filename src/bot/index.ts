@@ -1,17 +1,25 @@
 import EventEmitter from 'node:events';
 
-import { Tube } from "../tube";
+import { Tube } from '../tube';
 import nunjucks from 'nunjucks';
-import { getChatCompletions } from "../adapter/openai";
-import { getChatCompletions as getCozeChatCompletions } from "../adapter/coze";
+import { getChatCompletions } from '../adapter/openai';
+import { getChatCompletions as getCozeChatCompletions } from '../adapter/coze';
 
-import type { ChatConfig, ChatOptions } from "../types";
-import type { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
+import type { ChatConfig, ChatOptions } from '../types';
+import type {
+  ChatCompletionAssistantMessageParam,
+  ChatCompletionSystemMessageParam,
+  ChatCompletionUserMessageParam,
+  ChatCompletionContentPart,
+} from 'openai/resources/chat/completions';
 
 import { shortId } from '../utils';
 import { MCPClient } from '../mcp/client';
 
-type ChatCompletionMessageParam = ChatCompletionSystemMessageParam | ChatCompletionAssistantMessageParam | ChatCompletionUserMessageParam;
+type ChatCompletionMessageParam =
+  | ChatCompletionSystemMessageParam
+  | ChatCompletionAssistantMessageParam
+  | ChatCompletionUserMessageParam;
 
 interface FilterMap {
   [key: string]: boolean;
@@ -39,7 +47,11 @@ export class ChatBot extends Bot {
   private id: string;
   private _mcpClient: MCPClient | undefined;
 
-  constructor(private tube: Tube, config: ChatConfig, options: ChatOptions = {}) {
+  constructor(
+    private tube: Tube,
+    config: ChatConfig,
+    options: ChatOptions = {}
+  ) {
     super();
     this.id = shortId();
     this.config = { ...config };
@@ -59,7 +71,7 @@ export class ChatBot extends Bot {
   }
 
   setJSONRoot(root: string | null) {
-    if(!this.options.response_format) {
+    if (!this.options.response_format) {
       this.options.response_format = { type: 'json_object', root };
     } else {
       this.options.response_format.root = root;
@@ -67,12 +79,17 @@ export class ChatBot extends Bot {
   }
 
   setCustomParams(params: Record<string, string>) {
-    this.customParams = {...params};
+    this.customParams = { ...params };
   }
 
   addPrompt(promptTpl: string, promptData: Record<string, any> = {}) {
-    const promptText = nunjucks.renderString(promptTpl, { chatConfig: this.config, chatOptions: this.options, ...this.customParams, ...promptData, });
-    this.prompts.push({ role: "system", content: promptText });
+    const promptText = nunjucks.renderString(promptTpl, {
+      chatConfig: this.config,
+      chatOptions: this.options,
+      ...this.customParams,
+      ...promptData,
+    });
+    this.prompts.push({ role: 'system', content: promptText });
   }
 
   setPrompt(promptTpl: string, promptData: Record<string, string> = {}) {
@@ -80,40 +97,40 @@ export class ChatBot extends Bot {
     this.addPrompt(promptTpl, promptData);
   }
 
-  addHistory(messages: ChatCompletionMessageParam []) {
+  addHistory(messages: ChatCompletionMessageParam[]) {
     this.history.push(...messages);
   }
 
-  setHistory(messages: ChatCompletionMessageParam []) {
+  setHistory(messages: ChatCompletionMessageParam[]) {
     this.history = messages;
   }
 
   addFilter(filter: ((data: any) => boolean) | string | RegExp | FilterMap) {
-    if(typeof filter === 'string') {
+    if (typeof filter === 'string') {
       // 如果是 string，则排除掉该字段
       this.tube.addFilter(this.id, (data: any) => data.uri === `${this.root}/${filter}`);
-    } else if(filter instanceof RegExp) {
+    } else if (filter instanceof RegExp) {
       // 如果是正则表达式，则过滤掉匹配该正则表达式的字段
       this.tube.addFilter(this.id, (data: any) => filter.test(data.uri));
-    } else if(typeof filter === 'function') {
+    } else if (typeof filter === 'function') {
       // 如果是函数，那么应当过滤掉函数返回值为false的数据，保留返回为true的
       this.tube.addFilter(this.id, (data: any) => !filter(data));
-    } else if(typeof filter === 'object') {
+    } else if (typeof filter === 'object') {
       // 如果是对象，那么应当过滤掉对象中值为false的键，或者保留为true的键
       const _filter = filter as FilterMap;
-      const filterFun = ({uri}: any) => {
+      const filterFun = ({ uri }: any) => {
         if (uri == null) return false;
         let isTrueFilter = false;
-        for(const key in _filter) {
-          if(uri === `${this.root}/${key}`) {
+        for (const key in _filter) {
+          if (uri === `${this.root}/${key}`) {
             return !_filter[key];
           }
-          if(_filter[key] && !isTrueFilter) {
+          if (_filter[key] && !isTrueFilter) {
             isTrueFilter = true;
           }
         }
         return isTrueFilter;
-      } 
+      };
       this.tube.addFilter(this.id, filterFun);
     }
   }
@@ -123,11 +140,11 @@ export class ChatBot extends Bot {
   }
 
   userMessage(message: string): ChatCompletionUserMessageParam {
-    return { role: "user", content: message };
+    return { role: 'user', content: message };
   }
 
   botMessage(message: string): ChatCompletionAssistantMessageParam {
-    return { role: "assistant", content: message };
+    return { role: 'assistant', content: message };
   }
 
   async chat(message: string | ChatCompletionContentPart[]) {
@@ -135,40 +152,63 @@ export class ChatBot extends Bot {
       this.chatState = WorkState.WORKING;
       const isJSONFormat = this.isJSONFormat();
       const prompts = this.prompts.length > 0 ? [...this.prompts] : [];
-      if(this.prompts.length === 0 && isJSONFormat) {
+      if (this.prompts.length === 0 && isJSONFormat) {
         prompts.push({
           role: 'system',
           content: `[Output]\nOutput with json format, starts with '{'\n[Example]\n{"answer": "My answer"}`,
         });
       }
-      const messages = [...prompts, ...this.history, { role: "user", content: message }];
-      if(this.config.endpoint.startsWith('https://api.coze.cn')) {
-        return await getCozeChatCompletions(this.tube, messages, this.config, {...this.options, custom_variables: this.customParams}, 
-          (content) => { // on complete
+      const messages = [...prompts, ...this.history, { role: 'user', content: message }];
+      if (this.config.endpoint.startsWith('https://api.coze.cn')) {
+        return await getCozeChatCompletions(
+          this.tube,
+          messages,
+          this.config,
+          { ...this.options, custom_variables: this.customParams },
+          content => {
+            // on complete
             this.chatState = WorkState.FINISHED;
             this.emit('response', content);
-          }, (content) => { // on string response
+          },
+          content => {
+            // on string response
             this.emit('string-response', content);
-          }, (content) => { // on object response
+          },
+          content => {
+            // on object response
             this.emit('object-response', content);
-          }).then((content) => { // on inference done
-            this.chatState = WorkState.INFERENCE_DONE;
-            this.emit('inference-done', content);
-          });
-      }
-      return await getChatCompletions(this.tube, messages, this.config, this.options, this._mcpClient,
-        (content) => { // on complete
-          this.chatState = WorkState.FINISHED;
-          this.emit('response', content);
-        }, (content) => { // on string response
-          this.emit('string-response', content);
-        }, (content) => { // on object response
-          this.emit('object-response', content);
-        }).then((content) => { // on inference done
+          }
+        ).then(content => {
+          // on inference done
           this.chatState = WorkState.INFERENCE_DONE;
           this.emit('inference-done', content);
         });
-    } catch(ex: any) {
+      }
+      return await getChatCompletions(
+        this.tube,
+        messages,
+        this.config,
+        this.options,
+        this._mcpClient,
+        content => {
+          // on complete
+          this.chatState = WorkState.FINISHED;
+          this.emit('response', content);
+        },
+        content => {
+          // on string response
+          this.emit('string-response', content);
+        },
+        content => {
+          // on object response
+          this.emit('object-response', content);
+        }
+      ).then(content => {
+        // on inference done
+        this.chatState = WorkState.INFERENCE_DONE;
+        this.emit('inference-done', content);
+      });
+    } catch (ex: any) {
       console.error(ex);
       this.chatState = WorkState.ERROR;
       // 不主动发error给客户端

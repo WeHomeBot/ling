@@ -4,8 +4,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 
-import { Ling } from "../src/index";
-import type { ChatConfig } from "../src/types";
+import { Ling } from '../src/index';
+import type { ChatConfig } from '../src/types';
 
 import { pipeline } from 'node:stream/promises';
 
@@ -36,28 +36,32 @@ function workflow(question: string, sse: boolean = false) {
   const bot = ling.createBot(/*'bearbobo'*/);
   bot.addPrompt('你用JSON格式回答我，以{开头\n[Example]\n{"answer": "我的回答"}');
   bot.chat(question);
-  bot.on('string-response', ({uri, delta}) => {
+  bot.on('string-response', ({ uri, delta }) => {
     // JSON中的字符串内容推理完成，将 anwser 字段里的内容发给第二个 bot
     console.log('bot string-response', uri, delta);
 
     const bot2 = ling.createBot(/*'bearbobo'*/);
-    bot2.addPrompt('将我给你的内容扩写成更详细的内容，用JSON格式回答我，将解答内容的详细文字放在\'details\'字段里，将2-3条相关的其他知识点放在\'related_question\'字段里。\n[Example]\n{"details": "我的详细回答", "related_question": ["相关知识内容",...]}');
+    bot2.addPrompt(
+      '将我给你的内容扩写成更详细的内容，用JSON格式回答我，将解答内容的详细文字放在\'details\'字段里，将2-3条相关的其他知识点放在\'related_question\'字段里。\n[Example]\n{"details": "我的详细回答", "related_question": ["相关知识内容",...]}'
+    );
     bot2.chat(delta);
-    bot2.on('response', (content) => {
+    bot2.on('response', content => {
       // 流数据推送完成
       console.log('bot2 response finished', content);
     });
 
     const bot3 = ling.createBot();
-    bot3.addPrompt('将我给你的内容**用英文**扩写成更详细的内容，用JSON格式回答我，将解答内容的详细英文放在\'details_eng\'字段里。\n[Example]\n{"details_eng": "my answer..."}');
+    bot3.addPrompt(
+      '将我给你的内容**用英文**扩写成更详细的内容，用JSON格式回答我，将解答内容的详细英文放在\'details_eng\'字段里。\n[Example]\n{"details_eng": "my answer..."}'
+    );
     bot3.chat(delta);
-    bot3.on('response', (content) => {
+    bot3.on('response', content => {
       // 流数据推送完成
       console.log('bot3 response finished', content);
     });
   });
 
-  ling.on('message', (message) => {
+  ling.on('message', message => {
     console.log('ling message', message);
   });
 
@@ -69,16 +73,16 @@ function workflow(question: string, sse: boolean = false) {
 app.get('/', async (req, res) => {
   // setting below headers for Streaming the data
   res.writeHead(200, {
-    'Content-Type': "text/event-stream",
-    'Cache-Control': "no-cache",
-    'Connection': "keep-alive"
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
   });
 
   const question = req.query.question as string;
   const ling = workflow(question, true);
   try {
-    await pipeline((ling.stream as any), res);
-  } catch(ex) {
+    await pipeline(ling.stream as any, res);
+  } catch (ex) {
     ling.cancel();
   }
 });
@@ -86,9 +90,9 @@ app.get('/', async (req, res) => {
 app.get('/ai/chat', async (req, res) => {
   // setting below headers for Streaming the data
   res.writeHead(200, {
-    'Content-Type': "text/event-stream",
-    'Cache-Control': "no-cache",
-    'Connection': "keep-alive"
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
   });
 
   const question = req.query.question as string;
@@ -102,16 +106,12 @@ app.get('/ai/chat', async (req, res) => {
   ling.setSSE(true);
 
   ling.registerMSPServers({
-    "mcpServers": {
-      "filesystem": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@modelcontextprotocol/server-filesystem",
-          process.cwd(),
-        ]
-      }
-    }
+    mcpServers: {
+      filesystem: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', process.cwd()],
+      },
+    },
   });
 
   const bot = ling.createBot();
@@ -121,8 +121,8 @@ app.get('/ai/chat', async (req, res) => {
   ling.close();
 
   try {
-    await pipeline((ling.stream as any), res);
-  } catch(ex) {
+    await pipeline(ling.stream as any, res);
+  } catch (ex) {
     ling.cancel();
   }
 });
@@ -137,8 +137,8 @@ app.post('/api', async (req, res) => {
   const question = req.body.question;
   const ling = workflow(question);
   try {
-    await pipeline((ling.stream as any), res);
-  } catch(ex) {
+    await pipeline(ling.stream as any, res);
+  } catch (ex) {
     ling.cancel();
   }
 });

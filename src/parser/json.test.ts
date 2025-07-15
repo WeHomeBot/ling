@@ -13,99 +13,109 @@ describe('JSONParser', () => {
   test('sample JSON string {}', done => {
     const _data = {};
 
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('sample JSON string []', done => {
     const _data: any = [];
 
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('sample JSON string Object', done => {
     const _arr: string[] = [];
-    const _data = { "name": "bearbobo" };
+    const _data = { name: 'bearbobo' };
 
-    parser.on('data', (data) => {
-      _arr.push(data.delta)
+    parser.on('data', data => {
+      _arr.push(data.delta);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       expect(_arr).toEqual(['b', 'e', 'a', 'r', 'b', 'o', 'b', 'o']);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('sample JSON string Number', done => {
     const _arr: any[] = [];
-    const _data = { "age": 10 };
+    const _data = { age: 10 };
 
-    parser.on('data', (data) => {
-      _arr.push(data)
+    parser.on('data', data => {
+      _arr.push(data);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       expect(_arr).toEqual([{ uri: 'x/y/age', delta: 10 }]);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('sample JSON string Boolean', done => {
     const _arr: any[] = [];
     const _data = { a: false, b: true, c: true };
 
-    parser.on('data', (data) => {
-      _arr.push(data)
+    parser.on('data', data => {
+      _arr.push(data);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
-      expect(_arr).toEqual([{ uri: 'x/y/a', delta: false }, { uri: 'x/y/b', delta: true }, { uri: 'x/y/c', delta: true }]);
+      expect(_arr).toEqual([
+        { uri: 'x/y/a', delta: false },
+        { uri: 'x/y/b', delta: true },
+        { uri: 'x/y/c', delta: true },
+      ]);
       done();
     });
 
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('sample JSON object and array', done => {
-    const _data = { "a": [1, 2, 3], "b": { "c": 4, "d": 5 } };
-    parser.on('object-resolve', ({uri, delta}) => {
+    const _data = { a: [1, 2, 3], b: { c: 4, d: 5 } };
+    parser.on('object-resolve', ({ uri, delta }) => {
       console.log('object-resolve', uri, delta);
-      if(uri === 'a') {
+      if (uri === 'a') {
         expect(delta).toEqual([1, 2, 3]);
       }
-      if(uri === 'b') {
-        expect(delta).toEqual({c: 4, d: 5});
+      if (uri === 'b') {
+        expect(delta).toEqual({ c: 4, d: 5 });
       }
-    })
-    parser.on('finish', (data) => {
+    });
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       done();
     });
     parser.trace(JSON.stringify(_data));
-  })
+  });
 
   test('complex JSON string', done => {
     const _arr: any[] = [];
-    const _data = { "b": { "a\"": "你好，我是波波熊。" }, "c": 1024, "d": true, "e": [1, 2, " 灵", true, false, null, [32], { 'g': 'h' }], "f": null };
+    const _data = {
+      b: { 'a"': '你好，我是波波熊。' },
+      c: 1024,
+      d: true,
+      e: [1, 2, ' 灵', true, false, null, [32], { g: 'h' }],
+      f: null,
+    };
 
-    parser.on('data', (data) => {
-      _arr.push(data)
+    parser.on('data', data => {
+      _arr.push(data);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       expect(_arr).toEqual([
         { uri: 'x/y/b/a\\"', delta: '你' },
@@ -128,7 +138,7 @@ describe('JSONParser', () => {
         { uri: 'x/y/e/5', delta: null },
         { uri: 'x/y/e/6/0', delta: 32 },
         { uri: 'x/y/e/7/g', delta: 'h' },
-        { uri: 'x/y/f', delta: null }
+        { uri: 'x/y/f', delta: null },
       ]);
       done();
     });
@@ -147,13 +157,13 @@ describe('JSONParser', () => {
 
   test('Minimum valid JSON string', done => {
     const _arr: any[] = [];
-    const _data = { "k": "v" };
+    const _data = { k: 'v' };
 
-    parser.on('data', (data) => {
+    parser.on('data', data => {
       expect(data.uri.startsWith('x/y')).toBeTruthy();
-      _arr.push(data)
+      _arr.push(data);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual(_data);
       expect(_arr).toEqual([{ uri: 'x/y/k', delta: 'v' }]);
       done();
@@ -163,11 +173,19 @@ describe('JSONParser', () => {
   });
 
   test('sample JSON string with space', done => {
-    parser.on('finish', (data) => {
-      expect(data).toEqual({ 'name': 'bearbobo', 'age': 10, boy: true, hobbies: ['football', 'swiming'], school: null });
+    parser.on('finish', data => {
+      expect(data).toEqual({
+        name: 'bearbobo',
+        age: 10,
+        boy: true,
+        hobbies: ['football', 'swiming'],
+        school: null,
+      });
       done();
-    })
-    parser.trace('{ "name" : "bearbobo" , "age" : 10 , "boy" : true , "hobbies" : [ "football", "swiming" ] , "school" : null } ');
+    });
+    parser.trace(
+      '{ "name" : "bearbobo" , "age" : 10 , "boy" : true , "hobbies" : [ "football", "swiming" ] , "school" : null } '
+    );
   });
 
   test('Empty JSON string', done => {
@@ -245,7 +263,7 @@ describe('JSONParser', () => {
   //   }
   // }, 1000);
 
-  test('JSON string containing illegal characters', done => {
+  test('JSON string containing illegal characters 2', done => {
     try {
       parser.trace('{"name":"Bearbobo\n"}');
     } catch (error: any) {
@@ -258,12 +276,15 @@ describe('JSONParser', () => {
   test('JSON string with duplicate key', done => {
     const _arr: any[] = [];
 
-    parser.on('data', (data) => {
-      _arr.push(data)
+    parser.on('data', data => {
+      _arr.push(data);
     });
-    parser.on('finish', (data) => {
+    parser.on('finish', data => {
       expect(data).toEqual({ a: 2048 });
-      expect(_arr).toEqual([{ uri: 'x/y/a', delta: 1024, }, { uri: 'x/y/a', delta: 2048 }]);
+      expect(_arr).toEqual([
+        { uri: 'x/y/a', delta: 1024 },
+        { uri: 'x/y/a', delta: 2048 },
+      ]);
       done();
     });
 
@@ -280,11 +301,11 @@ describe('JSONParser', () => {
       "name"": "bearbobo",
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({name: 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -300,11 +321,11 @@ describe('JSONParser', () => {
       ""name": "bearbobo",
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({name: 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -320,11 +341,11 @@ describe('JSONParser', () => {
       "name"abc": "bearbobo",
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({name: 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -340,11 +361,11 @@ describe('JSONParser', () => {
       "name" : "bearbobo",
       "age : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -360,11 +381,11 @@ describe('JSONParser', () => {
       "name" : "bearbobo",
       age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -380,11 +401,11 @@ describe('JSONParser', () => {
       "name" : "bearbobo",
       age : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', age: 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -400,11 +421,11 @@ describe('JSONParser', () => {
       "name" : "bearbobo",
        : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', '': 10 });
       done();
     });
     parser.trace(input);
@@ -421,11 +442,11 @@ describe('JSONParser', () => {
 me" : "bearbobo",
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -443,11 +464,11 @@ me" : "bearbobo",
       "content" : "hello
 world"
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10, "content": "hello\nworld"});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10, content: 'hello\nworld' });
       done();
     });
     parser.trace(input);
@@ -462,11 +483,11 @@ world"
       "name" : ,
       "age" : 
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": null, "age": null});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: null, age: null });
       done();
     });
     parser.trace(input);
@@ -482,17 +503,17 @@ world"
       "name" : bearbobo",
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
   });
 
-  test('JSON autoFix lost quotation marks of string value 1', done => {
+  test('JSON autoFix lost quotation marks of string value 2', done => {
     // 缺少右引号
     const parser = new JSONParser({
       debug: false,
@@ -502,11 +523,11 @@ world"
       "name" : "bearbobo,
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -523,11 +544,11 @@ world"
 rbo"bo,
       "age" : 10
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'be\"a\nrbo\"bo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'be"a\nrbo"bo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -543,8 +564,8 @@ rbo"bo,
       'name" : "bearbobo",
       "age" : 10
     }`;
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -560,8 +581,8 @@ rbo"bo,
       "name” : "bearbobo",
       "age" : 10
     }`;
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": 'bearbobo', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bearbobo', age: 10 });
       done();
     });
     parser.trace(input);
@@ -577,8 +598,8 @@ rbo"bo,
       "name” : ‘bearbobo',
       "age" : 10
     }`;
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": '‘bearbobo\'', "age": 10});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: "‘bearbobo'", age: 10 });
       done();
     });
     parser.trace(input);
@@ -596,11 +617,11 @@ rbo"bo,
       "age" : 10a,
       "school" : [1, 2, 3]
     }`;
-    // parser.on('data', (data) => { 
+    // parser.on('data', (data) => {
     //   console.log(data);
     // });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": "nul", "0text": true, "age": "10a", "school": [1, 2, 3]});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'nul', '0text': true, age: '10a', school: [1, 2, 3] });
       done();
     });
     parser.trace(input);
@@ -614,8 +635,8 @@ rbo"bo,
     const input = `{
       "name” : "🐻"
     }`;
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": "🐻"});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: '🐻' });
       done();
     });
     parser.trace(input);
@@ -629,14 +650,14 @@ rbo"bo,
     const input = `{
       "name” : "bear\\"bobo\\ntest"
     }`;
-    parser.on('data', (data) => {
+    parser.on('data', data => {
       console.log('escape character', data);
     });
-    parser.on('string-resolve', (data) => {
+    parser.on('string-resolve', data => {
       console.log('string-resolve', data);
     });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": "bear\"bobo\ntest"});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'bear"bobo\ntest' });
       done();
     });
     parser.trace(input);
@@ -657,13 +678,13 @@ rbo"bo,
       "school" : [1, 2, 3]
     }
     \`\`\``;
-    parser.on('data', (data) => { 
+    parser.on('data', data => {
       console.log(data);
     });
-    parser.on('finish', (data) => {
-      expect(data).toEqual({"name": "nul", "0text": true, "age": "10a", "school": [1, 2, 3]});
+    parser.on('finish', data => {
+      expect(data).toEqual({ name: 'nul', '0text': true, age: '10a', school: [1, 2, 3] });
       done();
     });
     parser.trace(input);
   });
-})
+});

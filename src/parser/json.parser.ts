@@ -15,8 +15,10 @@ const enum LexerStates {
 }
 
 function isNumeric(str: unknown) {
-  return !isNaN(str as number) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-    !isNaN(parseFloat(str as string)) // ...and ensure strings of whitespace fail
+  return (
+    !isNaN(str as number) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !isNaN(parseFloat(str as string))
+  ); // ...and ensure strings of whitespace fail
 }
 
 function isTrue(str: string) {
@@ -38,12 +40,18 @@ export class JSONParser extends EventEmitter {
   private currentToken = '';
   private keyPath: string[] = [];
   private arrayIndexStack: any[] = [];
-  private objectTokenIndexStack: number[] = [];  
+  private objectTokenIndexStack: number[] = [];
   private autoFix = false;
   private debug = false;
-  private lastPopStateToken: { state: LexerStates, token: string } | null = null;
+  private lastPopStateToken: { state: LexerStates; token: string } | null = null;
 
-  constructor(options: { autoFix?: boolean, parentPath?: string | null, debug?: boolean } = { autoFix: false, parentPath: null, debug: false }) {
+  constructor(
+    options: { autoFix?: boolean; parentPath?: string | null; debug?: boolean } = {
+      autoFix: false,
+      parentPath: null,
+      debug: false,
+    }
+  ) {
     super();
     this.autoFix = !!options.autoFix;
     this.debug = !!options.debug;
@@ -92,7 +100,7 @@ export class JSONParser extends EventEmitter {
     }
     if (state === LexerStates.Object || state === LexerStates.Array) {
       const idx = this.objectTokenIndexStack.pop();
-      if(idx != null && idx >= 0) {
+      if (idx != null && idx >= 0) {
         const obj = JSON.parse(this.content.slice(idx).join(''));
         this.emit('object-resolve', {
           uri: this.keyPath.join('/'),
@@ -107,7 +115,7 @@ export class JSONParser extends EventEmitter {
     const currentState = this.currentState;
     if (currentState === LexerStates.Breaker) {
       this.popState();
-      if(this.currentState === LexerStates.Value) {
+      if (this.currentState === LexerStates.Value) {
         this.popState();
       }
     } else if (currentState === LexerStates.String) {
@@ -157,14 +165,13 @@ export class JSONParser extends EventEmitter {
       if (this.currentState === LexerStates.Begin) {
         this.popState();
         this.pushState(LexerStates.Finish);
-        const data = (new Function(`return ${this.content.join('')}`))();
+        const data = new Function(`return ${this.content.join('')}`)();
         this.emit('finish', data);
       } else if (this.currentState === LexerStates.Value) {
         // this.popState();
         this.pushState(LexerStates.Breaker);
       }
-    }
-    else {
+    } else {
       this.traceError(this.content.join(''));
     }
   }
@@ -172,21 +179,21 @@ export class JSONParser extends EventEmitter {
   private traceError(input: string) {
     // console.error('Invalid Token', input);
     this.content.pop();
-    if(this.autoFix) {
+    if (this.autoFix) {
       if (this.currentState === LexerStates.Begin || this.currentState === LexerStates.Finish) {
         return;
       }
       if (this.currentState === LexerStates.Breaker) {
-        if(this.lastPopStateToken?.state === LexerStates.String) {
+        if (this.lastPopStateToken?.state === LexerStates.String) {
           // 修复 token 引号转义
           const lastPopStateToken = this.lastPopStateToken.token;
           this.stateStack[this.stateStack.length - 1] = LexerStates.String;
           this.currentToken = lastPopStateToken || '';
           let traceToken = '';
-          for(let i = this.content.length - 1; i >= 0; i--) {
-            if(this.content[i].trim()) {
+          for (let i = this.content.length - 1; i >= 0; i--) {
+            if (this.content[i].trim()) {
               this.content.pop();
-              traceToken = '\\\"' + traceToken;
+              traceToken = '\\"' + traceToken;
               break;
             }
             traceToken = this.content.pop() + traceToken;
@@ -195,15 +202,19 @@ export class JSONParser extends EventEmitter {
           return;
         }
       }
-      if(this.currentState === LexerStates.String) {
+      if (this.currentState === LexerStates.String) {
         // 回车的转义
-        if(input === '\n') {
-          if(this.lastState === LexerStates.Value) {
+        if (input === '\n') {
+          if (this.lastState === LexerStates.Value) {
             const currentToken = this.currentToken.trimEnd();
-            if(currentToken.endsWith(',') || currentToken.endsWith(']') || currentToken.endsWith('}')) {
+            if (
+              currentToken.endsWith(',') ||
+              currentToken.endsWith(']') ||
+              currentToken.endsWith('}')
+            ) {
               // 这种情况下是丢失了最后一个引号
-              for(let i = this.content.length - 1; i >= 0; i--) {
-                if(this.content[i].trim()) {
+              for (let i = this.content.length - 1; i >= 0; i--) {
+                if (this.content[i].trim()) {
                   break;
                 }
                 this.content.pop();
@@ -228,10 +239,10 @@ export class JSONParser extends EventEmitter {
           return;
         }
       }
-      if(this.currentState === LexerStates.Key) {
-        if(input !== '"') {
+      if (this.currentState === LexerStates.Key) {
+        if (input !== '"') {
           // 处理多余的左引号 eg. {""name": "bearbobo"}
-          if(this.lastPopStateToken?.token === '') {
+          if (this.lastPopStateToken?.token === '') {
             this.content.pop();
             this.content.push(input);
             this.pushState(LexerStates.String);
@@ -241,14 +252,14 @@ export class JSONParser extends EventEmitter {
         return;
       }
 
-      if(this.currentState === LexerStates.Value) {
+      if (this.currentState === LexerStates.Value) {
         if (input === ',' || input === '}' || input === ']') {
           // value 丢失了
           this.pushState(LexerStates.Null);
           this.currentToken = '';
           this.content.push('null');
           this.reduceState();
-          if(input !== ',') {
+          if (input !== ',') {
             this.trace(input);
           } else {
             this.content.push(input);
@@ -260,15 +271,15 @@ export class JSONParser extends EventEmitter {
           this.content.push('"');
           // 不处理 Value 的引号情况，因为前端修复更简单
           // if(!isQuotationMark(input)) {
-             this.trace(input);
+          this.trace(input);
           // }
         }
         return;
       }
 
-      if(this.currentState === LexerStates.Object) {
+      if (this.currentState === LexerStates.Object) {
         // 直接缺少了 key
-        if(input === ':') {
+        if (input === ':') {
           this.pushState(LexerStates.Key);
           this.pushState(LexerStates.String);
           this.currentToken = '';
@@ -281,24 +292,28 @@ export class JSONParser extends EventEmitter {
         this.pushState(LexerStates.String);
         this.currentToken = '';
         this.content.push('"');
-        if(!isQuotationMark(input)) {
+        if (!isQuotationMark(input)) {
           // 单引号和中文引号
           this.trace(input);
         }
         return;
       }
 
-      if(this.currentState === LexerStates.Number || this.currentState === LexerStates.Boolean || this.currentState === LexerStates.Null) {
+      if (
+        this.currentState === LexerStates.Number ||
+        this.currentState === LexerStates.Boolean ||
+        this.currentState === LexerStates.Null
+      ) {
         // number, boolean 和 null 失败
         const currentToken = this.currentToken;
         this.stateStack.pop();
         this.currentToken = '';
         // this.currentToken = '';
-        for(let i = 0; i < [...currentToken].length; i++) {
+        for (let i = 0; i < [...currentToken].length; i++) {
           this.content.pop();
         }
         // console.log('retrace', '"' + this.currentToken + input);
-        
+
         this.trace('"' + currentToken + input);
         return;
       }
@@ -350,36 +365,30 @@ export class JSONParser extends EventEmitter {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.String);
-    }
-    else if (input === '.' || input === '-' || isNumeric(input)) {
+    } else if (input === '.' || input === '-' || isNumeric(input)) {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.currentToken += input;
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.Number);
-    }
-    else if (input === 't' || input === 'f') {
+    } else if (input === 't' || input === 'f') {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.currentToken += input;
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.Boolean);
-    }
-    else if (input === 'n') {
+    } else if (input === 'n') {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.currentToken += input;
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.Null);
-    }
-    else if (input === '{') {
+    } else if (input === '{') {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.Object);
-    }
-    else if (input === '[') {
+    } else if (input === '[') {
       this.keyPath.push((this.arrayIndex.index++).toString());
       this.pushState(LexerStates.Value);
       this.pushState(LexerStates.Array);
-    }
-    else if (input === ']') {
+    } else if (input === ']') {
       this.reduceState();
     }
   }
@@ -389,7 +398,7 @@ export class JSONParser extends EventEmitter {
       this.traceError(input);
       return;
     }
-    const currentToken = this.currentToken.replace(/\\\\/g, '');  // 去掉转义的反斜杠
+    const currentToken = this.currentToken.replace(/\\\\/g, ''); // 去掉转义的反斜杠
     if (input === '"' && currentToken[this.currentToken.length - 1] !== '\\') {
       // 字符串结束符
       const lastState = this.lastState;
@@ -397,19 +406,27 @@ export class JSONParser extends EventEmitter {
       if (lastState === LexerStates.Value) {
         this.pushState(LexerStates.Breaker);
       }
-    } 
-    else if(this.autoFix && input === ':' && currentToken[this.currentToken.length - 1] !== '\\' && this.lastState === LexerStates.Key) {
+    } else if (
+      this.autoFix &&
+      input === ':' &&
+      currentToken[this.currentToken.length - 1] !== '\\' &&
+      this.lastState === LexerStates.Key
+    ) {
       // 默认这种情况下少了右引号，补一个
       this.content.pop();
-      for(let i = this.content.length - 1; i >= 0; i--) {
-        if(this.content[i].trim()) {
+      for (let i = this.content.length - 1; i >= 0; i--) {
+        if (this.content[i].trim()) {
           break;
         }
         this.content.pop();
       }
       this.trace('":');
-    } 
-    else if(this.autoFix && isQuotationMark(input) && input !== '"' && this.lastState === LexerStates.Key) {
+    } else if (
+      this.autoFix &&
+      isQuotationMark(input) &&
+      input !== '"' &&
+      this.lastState === LexerStates.Key
+    ) {
       // 处理 key 中的中文引号和单引号
       this.content.pop();
       return;
@@ -421,17 +438,17 @@ export class JSONParser extends EventEmitter {
             uri: this.keyPath.join('/'),
             delta: input,
           });
-        } else if(this.currentToken[this.currentToken.length - 1] === '\\') {
-          // 如果不是反斜杠，且可能构成转义，需要判断前面的\\的奇偶性 
+        } else if (this.currentToken[this.currentToken.length - 1] === '\\') {
+          // 如果不是反斜杠，且可能构成转义，需要判断前面的\\的奇偶性
           let count = 0;
           for (let i = this.currentToken.length - 1; i >= 0; i--) {
-            if(this.currentToken[i] === '\\') {
+            if (this.currentToken[i] === '\\') {
               count++;
             } else {
               break;
             }
           }
-          if(count % 2) {
+          if (count % 2) {
             // 奇数个反斜杠，构成转义
             this.emit('data', {
               uri: this.keyPath.join('/'),
@@ -506,7 +523,7 @@ export class JSONParser extends EventEmitter {
     }
 
     if (input === ',') {
-      if(this.currentToken === 'true' || this.currentToken === 'false') {
+      if (this.currentToken === 'true' || this.currentToken === 'false') {
         this.reduceState();
       } else {
         this.traceError(input);
@@ -515,7 +532,7 @@ export class JSONParser extends EventEmitter {
     }
 
     if (input === '}' || input === ']') {
-      if(this.currentToken === 'true' || this.currentToken === 'false') {
+      if (this.currentToken === 'true' || this.currentToken === 'false') {
         this.reduceState();
         this.content.pop();
         this.trace(input);
@@ -525,7 +542,10 @@ export class JSONParser extends EventEmitter {
       return;
     }
 
-    if ('true'.startsWith(this.currentToken + input) || 'false'.startsWith(this.currentToken + input)) {
+    if (
+      'true'.startsWith(this.currentToken + input) ||
+      'false'.startsWith(this.currentToken + input)
+    ) {
       this.currentToken += input;
       return;
     }
@@ -539,7 +559,7 @@ export class JSONParser extends EventEmitter {
     }
 
     if (input === ',') {
-      if(this.currentToken === 'null') {
+      if (this.currentToken === 'null') {
         this.reduceState();
       } else {
         this.traceError(input);
@@ -553,7 +573,7 @@ export class JSONParser extends EventEmitter {
       this.trace(input);
       return;
     }
-  
+
     if ('null'.startsWith(this.currentToken + input)) {
       this.currentToken += input;
       return;
@@ -568,8 +588,7 @@ export class JSONParser extends EventEmitter {
     }
     if (input === ',') {
       this.reduceState();
-    }
-    else if (input === '}' || input === ']') {
+    } else if (input === '}' || input === ']') {
       this.reduceState();
       this.content.pop();
       this.trace(input);
@@ -578,8 +597,9 @@ export class JSONParser extends EventEmitter {
     }
   }
 
-  public finish() { // 结束解析
-    if(this.currentState !== LexerStates.Finish) {
+  public finish() {
+    // 结束解析
+    if (this.currentState !== LexerStates.Finish) {
       throw new Error(`Parser not finished: ${this.currentState} | ${this.content.join('')}`);
     }
   }
@@ -590,7 +610,7 @@ export class JSONParser extends EventEmitter {
 
     const inputArray = [...input];
     if (inputArray.length > 1) {
-      inputArray.forEach((char) => {
+      inputArray.forEach(char => {
         this.trace(char);
       });
       return;
@@ -599,35 +619,25 @@ export class JSONParser extends EventEmitter {
     this.content.push(input);
     if (currentState === LexerStates.Begin) {
       this.traceBegin(input);
-    }
-    else if (currentState === LexerStates.Object) {
+    } else if (currentState === LexerStates.Object) {
       this.traceObject(input);
-    }
-    else if (currentState === LexerStates.String) {
+    } else if (currentState === LexerStates.String) {
       this.traceString(input);
-    }
-    else if (currentState === LexerStates.Key) {
+    } else if (currentState === LexerStates.Key) {
       this.traceKey(input);
-    }
-    else if (currentState === LexerStates.Value) {
+    } else if (currentState === LexerStates.Value) {
       this.traceValue(input);
-    }
-    else if (currentState === LexerStates.Number) {
+    } else if (currentState === LexerStates.Number) {
       this.traceNumber(input);
-    }
-    else if (currentState === LexerStates.Boolean) {
+    } else if (currentState === LexerStates.Boolean) {
       this.traceBoolean(input);
-    }
-    else if (currentState === LexerStates.Null) {
+    } else if (currentState === LexerStates.Null) {
       this.traceNull(input);
-    }
-    else if (currentState === LexerStates.Array) {
+    } else if (currentState === LexerStates.Array) {
       this.traceArray(input);
-    }
-    else if (currentState === LexerStates.Breaker) {
+    } else if (currentState === LexerStates.Breaker) {
       this.traceBreaker(input);
-    }
-    else if (!isWhiteSpace(input)) {
+    } else if (!isWhiteSpace(input)) {
       this.traceError(input);
     }
   }

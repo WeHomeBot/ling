@@ -20,7 +20,7 @@ describe('OpenAI', () => {
     //   api_key: apiKey,
     //   endpoint: endpoint,
     // };
-    
+
     // getChatCompletions(tube, messages, config, {
     //   frequency_penalty: 0,
     //   presence_penalty: 0,

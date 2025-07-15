@@ -21,10 +21,10 @@ export class Flow extends EventEmitter {
     return this.startNode;
   }
   async run() {
-    if(!this.startNode) {
+    if (!this.startNode) {
       return;
     }
-    const ret = new Promise((resolve) => {
+    const ret = new Promise(resolve => {
       this.once('finish', () => {
         resolve(null);
       });
@@ -56,22 +56,29 @@ export class FlowNode {
   private id = shortId();
   public emitter = new EventEmitter(); // 事件发射器
 
-  constructor(private flow: Flow, private previousNode: FlowNode | null = null) {}
+  constructor(
+    private flow: Flow,
+    private previousNode: FlowNode | null = null
+  ) {}
 
   finish() {
-    this.on(this.nextEventType, () => {
-      this.flow.emit('finish');
-    }, true);
+    this.on(
+      this.nextEventType,
+      () => {
+        this.flow.emit('finish');
+      },
+      true
+    );
   }
 
   on(event: string, listener: (taskArgs: FlowTaskArgs) => any, once: boolean = false) {
     const nextNode = new FlowNode(this.flow, this); // 下一个节点
-    const listen = once? 'once': 'on';
+    const listen = once ? 'once' : 'on';
     let callNext = false;
     this.emitter[listen](event, async (event: FlowEvent) => {
       const ret = await listener({
-        emit: (event: string,...args: unknown[]) => {
-          if(nextNode) {
+        emit: (event: string, ...args: unknown[]) => {
+          if (nextNode) {
             nextNode.emitter.emit(event, {
               type: event,
               sender: this,
@@ -81,22 +88,22 @@ export class FlowNode {
         },
         next: (...args: unknown[]) => {
           callNext = true;
-          if(!nextNode) {
+          if (!nextNode) {
             return;
           }
           return nextNode.emitter.emit(nextNode.nextEventType, {
             type: nextNode.nextEventType,
             sender: this,
             args,
-          }); 
+          });
         },
         event,
       });
-      if(!callNext && nextNode) {
+      if (!callNext && nextNode) {
         return nextNode.emitter.emit(nextNode.nextEventType, {
           type: nextNode.nextEventType,
           sender: this,
-          args: ret ? [ret]: [],
+          args: ret ? [ret] : [],
         });
       }
     });

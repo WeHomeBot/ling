@@ -1,15 +1,15 @@
 import path from 'node:path';
 import OpenAI from 'openai';
 
-import { AzureOpenAI } from "openai";
-import "@azure/openai/types";
+import { AzureOpenAI } from 'openai';
+import '@azure/openai/types';
 
 import { ChatConfig, ChatOptions } from '../../types';
 import { Tube } from '../../tube';
 import { JSONParser, HTMLParser, HTMLParserEvents } from '../../parser';
 import { sleep } from '../../utils';
 
-import "dotenv/config";
+import 'dotenv/config';
 import { MCPClient } from '../../mcp/client';
 
 const DEFAULT_CHAT_OPTIONS = {
@@ -29,9 +29,13 @@ export async function getChatCompletions(
   onStringResponse?: (content: any) => void,
   onObjectResponse?: (content: any) => void
 ) {
-  options = {...DEFAULT_CHAT_OPTIONS, ...options};
-  if (options.response_format) { // 防止原始引用对象里的值被删除
-    options.response_format = {type: options.response_format.type, root: options.response_format.root};
+  options = { ...DEFAULT_CHAT_OPTIONS, ...options };
+  if (options.response_format) {
+    // 防止原始引用对象里的值被删除
+    options.response_format = {
+      type: options.response_format.type,
+      root: options.response_format.root,
+    };
   }
   options.max_tokens = options.max_tokens || config.max_tokens || 4096; // || 16384;
 
@@ -45,19 +49,20 @@ export async function getChatCompletions(
 
   let client: OpenAI | AzureOpenAI;
   let model = '';
-  if(config.endpoint.endsWith('openai.azure.com')) {
-    process.env.AZURE_OPENAI_ENDPOINT=config.endpoint;
-    const scope = "https://cognitiveservices.azure.com/.default";
+  if (config.endpoint.endsWith('openai.azure.com')) {
+    process.env.AZURE_OPENAI_ENDPOINT = config.endpoint;
+    const scope = 'https://cognitiveservices.azure.com/.default';
     const deployment = config.model_name;
-    const apiVersion = config.api_version || "2024-07-01-preview";
-    client = new AzureOpenAI({ 
-      endpoint: config.endpoint, 
-      apiKey: config.api_key, 
+    const apiVersion = config.api_version || '2024-07-01-preview';
+    client = new AzureOpenAI({
+      endpoint: config.endpoint,
+      apiKey: config.api_key,
       // azureADTokenProvider,
       apiVersion,
-      deployment });
+      deployment,
+    });
   } else {
-    const {model_name, api_key, endpoint} = config as ChatConfig;
+    const { model_name, api_key, endpoint } = config as ChatConfig;
     model = model_name;
     client = new OpenAI({
       apiKey: api_key,
@@ -68,8 +73,8 @@ export async function getChatCompletions(
 
   const parentPath = options.response_format?.root;
   delete options.response_format.root;
-  if(isHTMLFormat) {
-    options.response_format = {type: 'text'};
+  if (isHTMLFormat) {
+    options.response_format = { type: 'text' };
   }
 
   let content = '';
@@ -77,49 +82,49 @@ export async function getChatCompletions(
   let done = false;
 
   let parser: JSONParser | HTMLParser | undefined;
-  
+
   if (isJSONFormat) {
     parser = new JSONParser({
       parentPath,
       autoFix: true,
     });
-    parser.on('data', (data) => {
+    parser.on('data', data => {
       buffer.push(data);
     });
-    parser.on('string-resolve', (content) => {
+    parser.on('string-resolve', content => {
       if (onStringResponse) onStringResponse(content);
     });
-    parser.on('object-resolve', (content) => {
+    parser.on('object-resolve', content => {
       if (onObjectResponse) onObjectResponse(content);
     });
-  } else if(isHTMLFormat) {
-    if(parentPath) throw new Error('Don\'t support parent path in HTML Format');
+  } else if (isHTMLFormat) {
+    if (parentPath) throw new Error("Don't support parent path in HTML Format");
     parser = new HTMLParser();
     parser.on(HTMLParserEvents.OPEN_TAG, (path, name, attributes) => {
-      tube.enqueue({ path, type:'open_tag', name, attributes }, isQuiet, bot_id);
+      tube.enqueue({ path, type: 'open_tag', name, attributes }, isQuiet, bot_id);
     });
     parser.on(HTMLParserEvents.CLOSE_TAG, (path, name) => {
-      tube.enqueue({ path, type:'close_tag', name }, isQuiet, bot_id);
-      if (onObjectResponse) onObjectResponse({path, name});
+      tube.enqueue({ path, type: 'close_tag', name }, isQuiet, bot_id);
+      if (onObjectResponse) onObjectResponse({ path, name });
     });
     parser.on(HTMLParserEvents.TEXT_DELTA, (path, text) => {
-      tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
+      tube.enqueue({ path, type: 'text_delta', delta: text }, isQuiet, bot_id);
     });
     parser.on(HTMLParserEvents.TEXT, (path, text) => {
-      if(path.endsWith('script') || path.endsWith('style')) {
-        tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
+      if (path.endsWith('script') || path.endsWith('style')) {
+        tube.enqueue({ path, type: 'text_delta', delta: text }, isQuiet, bot_id);
       }
-      if (onStringResponse) onStringResponse({path, text});
+      if (onStringResponse) onStringResponse({ path, text });
     });
   }
 
   let tools: OpenAI.Chat.Completions.ChatCompletionTool[];
   let toolIndex = 0;
-  if(mcpClient) {
+  if (mcpClient) {
     tools = await mcpClient.listTools(options.tool_type || 'function_call');
   }
 
-  const proceed = async(messages: any[]) => {
+  const proceed = async (messages: any[]): Promise<void> => {
     const events = await client.chat.completions.create({
       messages,
       ...options,
@@ -128,7 +133,7 @@ export async function getChatCompletions(
       stream: true,
     });
     let hasToolCall = false;
-    let toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = [];
+    const toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = [];
 
     for await (const event of events) {
       if (tube.canceled) break;
@@ -138,10 +143,14 @@ export async function getChatCompletions(
         const delta = choice.delta;
         if (delta.content) {
           content += delta.content;
-          if (parser) { // JSON format
+          if (parser) {
+            // JSON format
             parser.trace(delta.content);
-            if(isJSONFormat && (parser as JSONParser).isBeforeStart()) {
-              buffer.push({ uri: path.join(parentPath || '', '$reasoning_context'), delta: delta.content });
+            if (isJSONFormat && (parser as JSONParser).isBeforeStart()) {
+              buffer.push({
+                uri: path.join(parentPath || '', '$reasoning_context'),
+                delta: delta.content,
+              });
             }
           } else {
             buffer.push({ uri: parentPath, delta: delta.content });
@@ -149,7 +158,10 @@ export async function getChatCompletions(
         }
         // Note: reasoning property removed in OpenAI v5
         if ((delta as any).reasoning) {
-          buffer.push({ uri: path.join(parentPath || '', '$reasoning_context'), delta: (delta as any).reasoning });
+          buffer.push({
+            uri: path.join(parentPath || '', '$reasoning_context'),
+            delta: (delta as any).reasoning,
+          });
         }
         if (delta.tool_calls) {
           hasToolCall = true;
@@ -159,10 +171,10 @@ export async function getChatCompletions(
                 toolCalls[toolCall.index] = {
                   id: toolCall.id || '',
                   type: 'function',
-                  function: { name: '', arguments: '' }
+                  function: { name: '', arguments: '' },
                 };
               }
-              
+
               if (toolCall.function?.name) {
                 // join function name
                 toolCalls[toolCall.index].function.name += toolCall.function.name;
@@ -179,10 +191,10 @@ export async function getChatCompletions(
 
     if (hasToolCall && toolCalls.length > 0) {
       const toolResults = await Promise.all(
-        toolCalls.map(async (toolCall) => {
+        toolCalls.map(async toolCall => {
           // console.log(JSON.stringify(toolCall));
           buffer.push({
-            url: path.join(parentPath || '', '$tools', (toolIndex++).toString()), 
+            url: path.join(parentPath || '', '$tools', (toolIndex++).toString()),
             delta: JSON.stringify(toolCall.function),
             // delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
           });
@@ -196,13 +208,13 @@ export async function getChatCompletions(
               tool_call_id: toolCall.id,
               content: result.content,
             };
-          } catch(ex: any) {
+          } catch (ex: any) {
             console.error(ex);
             return {
               role: 'tool' as const,
               tool_call_id: toolCall.id,
               content: 'Error: ' + ex.message,
-            }
+            };
           }
         })
       );
@@ -214,11 +226,7 @@ export async function getChatCompletions(
         tool_calls: toolCalls,
       };
 
-      return await proceed([
-        ...messages,
-        assistantMessage,
-        ...toolResults
-      ]);
+      return await proceed([...messages, assistantMessage, ...toolResults]);
     }
 
     done = true;
@@ -227,23 +235,23 @@ export async function getChatCompletions(
     // }
   };
 
-  const promises: any[] = [
-    proceed(messages)
-  ];
+  const promises: any[] = [proceed(messages)];
 
-  promises.push((async () => {
-    let i = 0;
-    while (!(done && i >= buffer.length)) {
-      if (i < buffer.length) {
-        tube.enqueue(buffer[i], isQuiet, bot_id);
-        i++;
+  promises.push(
+    (async () => {
+      let i = 0;
+      while (!(done && i >= buffer.length)) {
+        if (i < buffer.length) {
+          tube.enqueue(buffer[i], isQuiet, bot_id);
+          i++;
+        }
+        const delta = buffer.length - i;
+        if (done || delta <= 0) await sleep(10);
+        else await sleep(Math.max(10, 1000 / delta));
       }
-      const delta = buffer.length - i;
-      if (done || delta <= 0) await sleep(10);
-      else await sleep(Math.max(10, 1000 / delta));
-    }
-    if (!tube.canceled && onComplete) onComplete(content);
-  })());
+      if (!tube.canceled && onComplete) onComplete(content);
+    })()
+  );
 
   await Promise.race(promises);
   if (!isJSONFormat && onStringResponse) onStringResponse({ uri: parentPath, delta: content });

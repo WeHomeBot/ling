@@ -7,7 +7,7 @@ export async function getChatCompletions(
   tube: Tube,
   messages: any[],
   config: ChatConfig,
-  options?: ChatOptions & {custom_variables?: Record<string, string>},
+  options?: ChatOptions & { custom_variables?: Record<string, string> },
   onComplete?: (content: string, function_calls?: any[]) => void,
   onStringResponse?: (content: any) => void,
   onObjectResponse?: (content: any) => void
@@ -25,17 +25,16 @@ export async function getChatCompletions(
 
   // system
   let system = '';
-  const systemPrompts = messages.filter((message) => message.role === 'system');
+  const systemPrompts = messages.filter(message => message.role === 'system');
   if (systemPrompts.length > 0) {
-    system = systemPrompts.map((message) => message.content).join('\n\n');
-    messages = messages.filter((message) => message.role !== system);
+    system = systemPrompts.map(message => message.content).join('\n\n');
+    messages = messages.filter(message => message.role !== system);
   }
 
   const custom_variables = { systemPrompt: system, ...options?.custom_variables };
   const query = messages.pop();
 
-
-  let chat_history = messages.map((message) => {
+  const chat_history = messages.map(message => {
     if (message.role === 'function') {
       return {
         role: 'assistant',
@@ -73,33 +72,33 @@ export async function getChatCompletions(
       parentPath,
       autoFix: true,
     });
-    parser.on('data', (data) => {
+    parser.on('data', data => {
       tube.enqueue(data, isQuiet, bot_id);
     });
-    parser.on('string-resolve', (content) => {
+    parser.on('string-resolve', content => {
       if (onStringResponse) onStringResponse(content);
     });
-    parser.on('object-resolve', (content) => {
+    parser.on('object-resolve', content => {
       if (onObjectResponse) onObjectResponse(content);
     });
-  } else if(isHTMLFormat) {
-    if(parentPath) throw new Error('Don\'t support parent path in HTML Format');
+  } else if (isHTMLFormat) {
+    if (parentPath) throw new Error("Don't support parent path in HTML Format");
     parser = new HTMLParser();
     parser.on(HTMLParserEvents.OPEN_TAG, (path, name, attributes) => {
-      tube.enqueue({ path, type:'open_tag', name, attributes }, isQuiet, bot_id);
+      tube.enqueue({ path, type: 'open_tag', name, attributes }, isQuiet, bot_id);
     });
     parser.on(HTMLParserEvents.CLOSE_TAG, (path, name) => {
-      tube.enqueue({ path, type:'close_tag', name }, isQuiet, bot_id);
-      if (onObjectResponse) onObjectResponse({path, name});
+      tube.enqueue({ path, type: 'close_tag', name }, isQuiet, bot_id);
+      if (onObjectResponse) onObjectResponse({ path, name });
     });
     parser.on(HTMLParserEvents.TEXT_DELTA, (path, text) => {
-      tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
+      tube.enqueue({ path, type: 'text_delta', delta: text }, isQuiet, bot_id);
     });
     parser.on(HTMLParserEvents.TEXT, (path, text) => {
-      if(path.endsWith('script') || path.endsWith('style')) {
-        tube.enqueue({ path, type:'text_delta', delta: text }, isQuiet, bot_id);
+      if (path.endsWith('script') || path.endsWith('style')) {
+        tube.enqueue({ path, type: 'text_delta', delta: text }, isQuiet, bot_id);
       }
-      if (onStringResponse) onStringResponse({path, text});
+      if (onStringResponse) onStringResponse({ path, text });
     });
   }
 
@@ -124,7 +123,7 @@ export async function getChatCompletions(
   });
 
   const reader = res.body?.getReader();
-  if(!reader) {
+  if (!reader) {
     console.error('No reader');
     tube.cancel();
     return;
@@ -140,7 +139,7 @@ export async function getChatCompletions(
   do {
     if (tube.canceled) break;
     const { done, value } = await reader.read();
-    if(done) break;
+    if (done) break;
     const delta = enc.decode(value);
     const events = delta.split('\n\n');
     for (const event of events) {
@@ -157,7 +156,7 @@ export async function getChatCompletions(
         buffer = '';
         if (data.error_information) {
           // console.error(data.error_information.err_msg);
-          tube.enqueue({event: 'error', data}, isQuiet, bot_id);
+          tube.enqueue({ event: 'error', data }, isQuiet, bot_id);
           tube.cancel();
           break;
         }
@@ -165,9 +164,10 @@ export async function getChatCompletions(
         if (message) {
           if (message.type === 'answer') {
             let result = message.content;
-            if(!content) { // 去掉开头的空格，coze有时候会出现这种情况，会影响 markdown 格式
+            if (!content) {
+              // 去掉开头的空格，coze有时候会出现这种情况，会影响 markdown 格式
               result = result.trimStart();
-              if(!result) continue;
+              if (!result) continue;
             }
             content += result;
             const chars = [...result];
@@ -179,8 +179,9 @@ export async function getChatCompletions(
               }
               await sleep(50);
             }
-            if(functionCalling) { // function_call 偶尔未返回结果，原因未知
-              tube.enqueue({event: 'tool_response', data: null}, isQuiet, bot_id);
+            if (functionCalling) {
+              // function_call 偶尔未返回结果，原因未知
+              tube.enqueue({ event: 'tool_response', data: null }, isQuiet, bot_id);
               functionCalling = false;
             }
           } else if (message.type === 'function_call') {
@@ -193,7 +194,7 @@ export async function getChatCompletions(
               function_call: func,
             });
             funcName = func.name;
-            tube.enqueue({event: 'function_call', data: func}, isQuiet, bot_id);
+            tube.enqueue({ event: 'function_call', data: func }, isQuiet, bot_id);
           } else if (message.type === 'tool_response') {
             functionCalling = false;
             function_calls.push({
@@ -201,19 +202,22 @@ export async function getChatCompletions(
               name: funcName,
               content: message.content,
             });
-            tube.enqueue({event: 'tool_response', data: message.content}, isQuiet, bot_id);
+            tube.enqueue({ event: 'tool_response', data: message.content }, isQuiet, bot_id);
           }
         }
       } else {
         try {
           const data = JSON.parse(event);
           if (data.code) {
-            tube.enqueue({event: 'error', data}, isQuiet, bot_id);
+            tube.enqueue({ event: 'error', data }, isQuiet, bot_id);
             tube.cancel();
           }
-        } catch(ex) {}
+        } catch (ex) {
+          /* empty */
+        }
       }
     }
+    // eslint-disable-next-line no-constant-condition
   } while (1);
   if (!isJSONFormat && onStringResponse) onStringResponse({ uri: parentPath, delta: content });
   if (!tube.canceled && onComplete) onComplete(content, function_calls);

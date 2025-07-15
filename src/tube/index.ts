@@ -1,5 +1,5 @@
 import EventEmitter from 'node:events';
-import { shortId } from "../utils";
+import { shortId } from '../utils';
 
 export class Tube extends EventEmitter {
   private _stream: ReadableStream;
@@ -12,11 +12,12 @@ export class Tube extends EventEmitter {
 
   constructor(private session_id: string = shortId()) {
     super();
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this._stream = new ReadableStream({
       start(controller) {
         self.controller = controller;
-      }
+      },
     });
   }
 
@@ -39,48 +40,50 @@ export class Tube extends EventEmitter {
     if (!this._closed) {
       try {
         let event = '';
-        if(typeof data !== 'string') {
-          if(this._sse && (data as any)?.event) {
-            event = `event: ${(data as any).event}\n`
-            this.emit('message', {id, data: event});
-            if((data as any).event === 'error') {
-              this.emit('error', {id, data});
+        if (typeof data !== 'string') {
+          if (this._sse && (data as any)?.event) {
+            event = `event: ${(data as any).event}\n`;
+            this.emit('message', { id, data: event });
+            if ((data as any).event === 'error') {
+              this.emit('error', { id, data });
             }
           }
           data = JSON.stringify(data) + '\n';
         }
-        if(this._sse) {
+        if (this._sse) {
           // data 如果是 string，则没有末尾换行符
-          data = `id: ${id}\n${event}data: ${(data as string).replace(/\n$/,'')}\n\n`;
+          data = `id: ${id}\n${event}data: ${(data as string).replace(/\n$/, '')}\n\n`;
         }
-        if(!isQuiet && !isFiltered) this.controller?.enqueue(data);
-        this.emit('message', {id, data});
-      } catch(ex: any) {
+        if (!isQuiet && !isFiltered) this.controller?.enqueue(data);
+        this.emit('message', { id, data });
+      } catch (ex: any) {
         this._closed = true;
-        this.emit('error', {id, data: ex.message});
+        this.emit('error', { id, data: ex.message });
         console.error('enqueue error:', ex);
       }
     }
   }
 
   close(force_close: boolean = false) {
-    if(this._closed) return;
-    this.enqueue({event: 'finished'});
+    if (this._closed) return;
+    this.enqueue({ event: 'finished' });
     this.emit('finished');
     this._closed = true;
     // SSE 下直接关闭的话，客户端会自动重连，所以这里等客户端发送断开请求自动关闭
-    if(force_close || !this._sse) this.controller?.close();
+    if (force_close || !this._sse) this.controller?.close();
   }
 
   async cancel() {
-    if(this._canceled) return;
+    if (this._canceled) return;
     this._canceled = true;
     this._closed = true;
     try {
-      this.enqueue({event: 'canceled'});
+      this.enqueue({ event: 'canceled' });
       this.emit('canceled');
       await this.stream.cancel();
-    } catch(ex) {}
+    } catch (ex) {
+      /* empty */
+    }
   }
 
   get id() {
