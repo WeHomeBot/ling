@@ -4,12 +4,11 @@ import OpenAI from 'openai';
 import { AzureOpenAI } from 'openai';
 import '@azure/openai/types';
 
-import { ChatConfig, ChatOptions } from '../../types';
-import { Tube } from '../../tube';
+import type { ChatConfig, ChatOptions } from '../../types';
+import type { Tube } from '../../tube';
 import { JSONParser, HTMLParser, HTMLParserEvents } from '../../parser';
 import { sleep } from '../../utils';
 
-import 'dotenv/config';
 import { MCPClient } from '../../mcp/client';
 
 const DEFAULT_CHAT_OPTIONS = {
@@ -50,8 +49,7 @@ export async function getChatCompletions(
   let client: OpenAI | AzureOpenAI;
   let model = '';
   if (config.endpoint.endsWith('openai.azure.com')) {
-    process.env.AZURE_OPENAI_ENDPOINT = config.endpoint;
-    const scope = 'https://cognitiveservices.azure.com/.default';
+    // const scope = 'https://cognitiveservices.azure.com/.default';
     const deployment = config.model_name;
     const apiVersion = config.api_version || '2024-07-01-preview';
     client = new AzureOpenAI({
@@ -194,7 +192,7 @@ export async function getChatCompletions(
         toolCalls.map(async toolCall => {
           // console.log(JSON.stringify(toolCall));
           buffer.push({
-            url: path.join(parentPath || '', '$tools', (toolIndex++).toString()),
+            url: path.join(parentPath || '', '$tools', toolIndex.toString()),
             delta: JSON.stringify(toolCall.function),
             // delta: `⚒️ (do task) -> ${toolCall.function.name} | ${toolCall.function.arguments.replace(/\n/g, ' ')}\n\n`
           });
@@ -203,6 +201,10 @@ export async function getChatCompletions(
               toolCall.function.name,
               JSON.parse(toolCall.function.arguments || '{}')
             );
+            buffer.push({
+              url: path.join(parentPath || '', '$tool_results', toolIndex.toString()),
+              delta: result.content,
+            });
             return {
               role: 'tool' as const,
               tool_call_id: toolCall.id,
@@ -210,11 +212,17 @@ export async function getChatCompletions(
             };
           } catch (ex: any) {
             console.error(ex);
+            buffer.push({
+              url: path.join(parentPath || '', '$tool_results', toolIndex.toString()),
+              delta: null,
+            });
             return {
               role: 'tool' as const,
               tool_call_id: toolCall.id,
               content: 'Error: ' + ex.message,
             };
+          } finally {
+            toolIndex++;
           }
         })
       );

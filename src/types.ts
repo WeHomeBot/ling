@@ -17,7 +17,7 @@ export enum ChatModel {
 export interface ChatConfig {
   model_name: string;
   endpoint: string;
-  api_key: string;
+  api_key?: string;
   api_version?: string;
   session_id?: string;
   max_tokens?: number;

@@ -4,6 +4,7 @@ import { Tube } from '../tube';
 import nunjucks from 'nunjucks';
 import { getChatCompletions } from '../adapter/openai';
 import { getChatCompletions as getCozeChatCompletions } from '../adapter/coze';
+import { getChatCompletions as getOllamaChatCompletions } from '../adapter/ollama';
 
 import type { ChatConfig, ChatOptions } from '../types';
 import type {
@@ -160,7 +161,7 @@ export class ChatBot extends Bot {
       }
       const messages = [...prompts, ...this.history, { role: 'user', content: message }];
       if (this.config.endpoint.startsWith('https://api.coze.cn')) {
-        return await getCozeChatCompletions(
+        return getCozeChatCompletions(
           this.tube,
           messages,
           this.config,
@@ -184,7 +185,33 @@ export class ChatBot extends Bot {
           this.emit('inference-done', content);
         });
       }
-      return await getChatCompletions(
+      if (this.config.endpoint === 'ollama') {
+        return getOllamaChatCompletions(
+          this.tube,
+          messages,
+          this.config,
+          this.options,
+          this._mcpClient,
+          content => {
+            // on complete
+            this.chatState = WorkState.FINISHED;
+            this.emit('response', content);
+          },
+          content => {
+            // on string response
+            this.emit('string-response', content);
+          },
+          content => {
+            // on object response
+            this.emit('object-response', content);
+          }
+        ).then(content => {
+          // on inference done
+          this.chatState = WorkState.INFERENCE_DONE;
+          this.emit('inference-done', content);
+        });
+      }
+      return getChatCompletions(
         this.tube,
         messages,
         this.config,

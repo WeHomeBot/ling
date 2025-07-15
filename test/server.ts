@@ -105,7 +105,7 @@ app.get('/ai/chat', async (req, res) => {
   const ling = new Ling(config);
   ling.setSSE(true);
 
-  ling.registerMSPServers({
+  ling.registerMCPServers({
     mcpServers: {
       filesystem: {
         command: 'npx',
@@ -114,7 +114,9 @@ app.get('/ai/chat', async (req, res) => {
     },
   });
 
-  const bot = ling.createBot();
+  const bot = ling.createBot('reply', undefined, {
+    response_format: { type: 'text' },
+  });
   // bot.addPrompt(prompt);
   console.log(question);
   bot.chat(question);

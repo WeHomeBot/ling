@@ -62,6 +62,7 @@
     "@modelcontextprotocol/sdk": "^1.15.0",
     "lodash.merge": "^4.6.2",
     "nunjucks": "^3.2.4",
+    "ollama": "^0.5.16",
     "openai": "^5.8.2"
   }
 }

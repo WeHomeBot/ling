@@ -51,7 +51,7 @@ export class Ling extends EventEmitter {
     // });
   }
 
-  registerMSPServers(config: { mcpServers: McpServersConfig }) {
+  registerMCPServers(config: { mcpServers: McpServersConfig }) {
     this._mcpClient.registerServers(config);
   }
 
